@@ -2891,25 +2891,21 @@ export function ProfileTab({
 
         <div
           className="flex justify-center mb-3"
-          aria-label={`${profile.displayName}'s personal signature`}
+          aria-label={`${sig.firstName}'s personal signature`}
         >
-          <svg
-            width={140}
-            height={sig.height * (140 / sig.width)}
-            viewBox={sig.viewBox}
-            role="img"
-            aria-label={`${profile.displayName}'s royal signature`}
+          <span
+            style={{
+              fontFamily: "'Dancing Script', cursive",
+              fontWeight: 700,
+              fontStyle: "italic",
+              fontSize: 32,
+              color: GOLD,
+              letterSpacing: "0.01em",
+              lineHeight: 1.2,
+            }}
           >
-            <title>{`${profile.displayName}'s personal signature`}</title>
-            <path
-              d={sig.svgPath}
-              fill="none"
-              stroke={GOLD}
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+            {sig.firstName}
+          </span>
         </div>
 
         <p

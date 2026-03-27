@@ -233,52 +233,27 @@ function SignatureSvg({
   sig,
   color = "#E8C880",
   width = 180,
-  animate = false,
 }: SignatureSvgProps) {
-  const scale = width / sig.width;
-  const h = sig.height * scale;
-  const ref = useRef<SVGPathElement>(null);
-
-  useEffect(() => {
-    if (!animate || !ref.current) return;
-    const path = ref.current;
-    const len = path.getTotalLength?.() ?? sig.pathLength;
-    path.style.strokeDasharray = `${len}`;
-    path.style.strokeDashoffset = `${len}`;
-    path.style.transition = "none";
-    // Force reflow
-    void path.getBoundingClientRect();
-    path.style.transition = "stroke-dashoffset 2.5s ease-in-out";
-    path.style.strokeDashoffset = "0";
-  }, [animate, sig.pathLength]);
-
+  // Font size scales with width to keep proportional feel
+  const fontSize = Math.max(14, Math.round(width * 0.22));
   return (
-    <svg
+    <span
       role="img"
-      aria-label="Personal signature"
-      viewBox={sig.viewBox}
-      width={width}
-      height={h}
-      style={{ overflow: "visible" }}
+      aria-label={`${sig.firstName}'s signature`}
+      style={{
+        fontFamily: "'Dancing Script', cursive",
+        fontWeight: 700,
+        fontStyle: "italic",
+        fontSize,
+        color,
+        display: "inline-block",
+        lineHeight: 1.2,
+        letterSpacing: "0.01em",
+        whiteSpace: "nowrap",
+      }}
     >
-      <path
-        ref={ref}
-        d={sig.svgPath}
-        fill="none"
-        stroke={color}
-        strokeWidth={1.8 / scale}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={
-          animate
-            ? {
-                strokeDasharray: sig.pathLength,
-                strokeDashoffset: sig.pathLength,
-              }
-            : undefined
-        }
-      />
-    </svg>
+      {sig.firstName}
+    </span>
   );
 }
 
