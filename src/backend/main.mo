@@ -12,9 +12,9 @@ import Map "mo:core/Map";
 
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
-import Migration "migration";
 
-(with migration = Migration.run)
+
+
 actor {
   // Type definitions
   type JournalEntry = {
@@ -58,6 +58,25 @@ actor {
     visibility : Text;
   };
 
+  type EmotionEntry = {
+    id : Text;
+    emotionType : Text;
+    emotionLabel : Text;
+    emoji : Text;
+    customEmotionLabel : ?Text;
+    textReflection : ?Text;
+    voiceDurationSeconds : ?Nat;
+    visibilityLevel : Text;
+    voiceOverrideApplied : Bool;
+    aiPromptShown : Bool;
+    aiPromptText : ?Text;
+    crisisSignalDetected : Bool;
+    crisisResourcesShown : Bool;
+    exhaleMessageShown : Text;
+    createdAt : Time.Time;
+    source : Text;
+  };
+
   module JournalEntry {
     public func compareByTimestamp(entry1 : JournalEntry, entry2 : JournalEntry) : Order.Order {
       Int.compare(entry2.timestamp, entry1.timestamp);
@@ -70,6 +89,12 @@ actor {
     };
   };
 
+  module EmotionEntry {
+    public func compareByCreatedAt(e1 : EmotionEntry, e2 : EmotionEntry) : Order.Order {
+      Int.compare(e2.createdAt, e1.createdAt);
+    };
+  };
+
   // Initialize authorization state
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -79,6 +104,7 @@ actor {
   let reflections = Map.empty<Principal, List.List<Reflection>>();
   let userProfiles = Map.empty<Principal, UserProfile>();
   let companionDumps = Map.empty<Principal, List.List<CompanionDump>>();
+  let emotionEntries = Map.empty<Principal, List.List<EmotionEntry>>();
 
   // Companion Dump Functions
   public shared ({ caller }) func saveCompanionDump(
@@ -148,6 +174,64 @@ actor {
     let now = Time.now();
     let daysSinceEpoch = now / (24 * 60 * 60 * 1_000_000_000);
     daysSinceEpoch * (24 * 60 * 60 * 1_000_000_000);
+  };
+
+  // EmotionEntry functions
+  public shared ({ caller }) func saveEmotionEntry(
+    emotionType : Text,
+    emotionLabel : Text,
+    emoji : Text,
+    customEmotionLabel : ?Text,
+    textReflection : ?Text,
+    voiceDurationSeconds : ?Nat,
+    visibilityLevel : Text,
+    voiceOverrideApplied : Bool,
+    aiPromptShown : Bool,
+    aiPromptText : ?Text,
+    crisisSignalDetected : Bool,
+    crisisResourcesShown : Bool,
+    exhaleMessageShown : Text,
+  ) : async Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save emotion entries");
+    };
+    let id = "entry_".concat(Time.now().toText());
+    let entry : EmotionEntry = {
+      id;
+      emotionType;
+      emotionLabel;
+      emoji;
+      customEmotionLabel;
+      textReflection;
+      voiceDurationSeconds;
+      visibilityLevel;
+      voiceOverrideApplied;
+      aiPromptShown;
+      aiPromptText;
+      crisisSignalDetected;
+      crisisResourcesShown;
+      exhaleMessageShown;
+      createdAt = Time.now();
+      source = "emotion_checkin";
+    };
+    let existing = switch (emotionEntries.get(caller)) {
+      case (null) { List.empty<EmotionEntry>() };
+      case (?e) { e };
+    };
+    existing.add(entry);
+    emotionEntries.add(caller, existing);
+    id;
+  };
+
+  public query ({ caller }) func getEmotionEntries() : async [EmotionEntry] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view emotion entries");
+    };
+    let entries = switch (emotionEntries.get(caller)) {
+      case (null) { List.empty<EmotionEntry>() };
+      case (?e) { e };
+    };
+    entries.toArray().sort(EmotionEntry.compareByCreatedAt);
   };
 
   // Journal functions

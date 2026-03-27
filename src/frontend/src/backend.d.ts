@@ -41,6 +41,24 @@ export interface CompanionDump {
     audioStored: boolean;
     textContent?: string;
 }
+export interface EmotionEntry {
+    id: string;
+    emotionType: string;
+    emotionLabel: string;
+    emoji: string;
+    customEmotionLabel?: string;
+    textReflection?: string;
+    voiceDurationSeconds?: bigint;
+    visibilityLevel: string;
+    voiceOverrideApplied: boolean;
+    aiPromptShown: boolean;
+    aiPromptText?: string;
+    crisisSignalDetected: boolean;
+    crisisResourcesShown: boolean;
+    exhaleMessageShown: string;
+    createdAt: Time;
+    source: string;
+}
 export interface UserProfile {
     displayName: string;
 }
@@ -59,6 +77,7 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCompanionDumps(): Promise<Array<CompanionDump>>;
+    getEmotionEntries(): Promise<Array<EmotionEntry>>;
     getProfile(): Promise<UserProfile | null>;
     getStats(): Promise<Stats>;
     getTodaysDump(): Promise<CompanionDump | null>;
@@ -66,5 +85,6 @@ export interface backendInterface {
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     saveCompanionDump(contentType: string, textContent: string | null, voiceDurationSeconds: bigint | null, crisisSignalDetected: boolean, crisisResourcesShown: boolean, exhaleMessageShown: string, streakDay: bigint): Promise<string>;
+    saveEmotionEntry(emotionType: string, emotionLabel: string, emoji: string, customEmotionLabel: string | null, textReflection: string | null, voiceDurationSeconds: bigint | null, visibilityLevel: string, voiceOverrideApplied: boolean, aiPromptShown: boolean, aiPromptText: string | null, crisisSignalDetected: boolean, crisisResourcesShown: boolean, exhaleMessageShown: string): Promise<string>;
     updateProfile(displayName: string): Promise<void>;
 }

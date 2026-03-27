@@ -18,6 +18,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { JournalEntry, Reflection, Stats, UserProfile } from "./backend";
 import { CompanionCard } from "./components/CompanionCard";
+import { EmotionCheckIn } from "./components/EmotionCheckIn";
+import { EmotionFeed } from "./components/EmotionFeed";
+import { QuietMomentScreen } from "./components/QuietMomentScreen";
 import { useActor } from "./hooks/useActor";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -215,10 +218,19 @@ function HomeTab({
   onNavigate,
   profile,
   entries,
+  onPostSuccess,
 }: {
   onNavigate: (tab: Tab) => void;
   profile: UserProfile | null | undefined;
   entries: JournalEntry[] | undefined;
+  onPostSuccess?: (data: {
+    emotion_type: string;
+    emotion_label: string;
+    emotion_emoji: string;
+    visibility: string;
+    source: "emotion_checkin";
+    crisis_signal_detected: boolean;
+  }) => void;
 }) {
   const quote = todayQuote();
   const name = profile?.displayName;
@@ -249,6 +261,12 @@ function HomeTab({
 
       {/* Companion Card — emotional release feature */}
       <CompanionCard />
+
+      {/* Emotion Check-In — Component 2 */}
+      <EmotionCheckIn onPostSuccess={onPostSuccess} />
+
+      {/* Emotion Feed — Component 3 */}
+      <EmotionFeed onCheckIn={() => onNavigate("write")} />
 
       <div className="px-5 space-y-5">
         {/* Mood check-in */}
@@ -1005,6 +1023,46 @@ function BottomNav({
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
+  const [quietMoment, setQuietMoment] = useState<{
+    emotion_type: string;
+    emotion_label: string;
+    emotion_emoji: string;
+    visibility: "ONLY_ME" | "INNER_CIRCLE" | "FRIENDS" | "GLOBAL";
+  } | null>(null);
+  const reduceMotion =
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false;
+
+  const handlePostSuccess = (data: {
+    emotion_type: string;
+    emotion_label: string;
+    emotion_emoji: string;
+    visibility: string;
+    source: "emotion_checkin";
+    crisis_signal_detected: boolean;
+  }) => {
+    setActiveTab("home");
+    if (data.crisis_signal_detected) {
+      return;
+    }
+    const visMap: Record<
+      string,
+      "ONLY_ME" | "INNER_CIRCLE" | "FRIENDS" | "GLOBAL"
+    > = {
+      only_me: "ONLY_ME",
+      inner_circle: "INNER_CIRCLE",
+      friends: "FRIENDS",
+      global_anonymous: "GLOBAL",
+      global: "GLOBAL",
+    };
+    setQuietMoment({
+      emotion_type: data.emotion_type,
+      emotion_label: data.emotion_label,
+      emotion_emoji: data.emotion_emoji,
+      visibility: visMap[data.visibility.toLowerCase()] ?? "ONLY_ME",
+    });
+  };
   const { actor, isFetching } = useActor();
 
   const { data: profile } = useQuery<UserProfile | null>({
@@ -1039,6 +1097,7 @@ export default function App() {
               onNavigate={setActiveTab}
               profile={profile}
               entries={entries}
+              onPostSuccess={handlePostSuccess}
             />
           )}
           {activeTab === "write" && (
@@ -1050,6 +1109,16 @@ export default function App() {
         </main>
 
         <BottomNav active={activeTab} onChange={setActiveTab} />
+        {quietMoment && (
+          <QuietMomentScreen
+            emotion_type={quietMoment.emotion_type}
+            emotion_label={quietMoment.emotion_label}
+            emotion_emoji={quietMoment.emotion_emoji}
+            visibility={quietMoment.visibility}
+            onDismiss={() => setQuietMoment(null)}
+            reduceMotion={reduceMotion}
+          />
+        )}
       </div>
 
       <Toaster position="top-center" richColors />
