@@ -89,7 +89,71 @@ export class ExternalBlob {
         return this;
     }
 }
+export interface ApologySchedule {
+    id: string;
+    status: string;
+    deliveredAt?: bigint;
+    apologyId: string;
+    rescheduleCount: bigint;
+    cancelledAt?: bigint;
+    scheduledDeliveryTime: bigint;
+    reminderSent: boolean;
+    reminderSentAt?: bigint;
+    senderUserId: Principal;
+}
 export type Time = bigint;
+export interface LoveLetter {
+    id: string;
+    status: string;
+    editLevel: string;
+    nonVeilToken?: string;
+    signature: string;
+    deliveredAt?: bigint;
+    aiVersionUsed: string;
+    visualStyle: string;
+    feltAt?: bigint;
+    wordCount: bigint;
+    journalEntryId?: string;
+    createdAt: bigint;
+    recipientContact?: string;
+    aiAssisted: boolean;
+    isAnonymous: boolean;
+    openingLine: string;
+    letterType: string;
+    deliveryMethod: string;
+    onThisDaySurfaced: boolean;
+    deliveryTime?: bigint;
+    recipientUserId?: Principal;
+    crisisSignalDetected: boolean;
+    closingLine: string;
+    bodyText: string;
+    visibility: string;
+    recipientType: string;
+    sharedWarmthTriggered: boolean;
+    senderUserId: Principal;
+    nonVeilTokenExpires?: bigint;
+    openedAt?: bigint;
+}
+export interface Confession {
+    id: string;
+    apologyCreatedAfter: boolean;
+    witnessResponseDelivered: boolean;
+    content: string;
+    deletionRequested: boolean;
+    wordCount: bigint;
+    userId: Principal;
+    mode: string;
+    createdAt: bigint;
+    witnessOpened: boolean;
+    onThisDaySurfaced: boolean;
+    witnessResponse?: string;
+    witnessUserId?: Principal;
+    witnessNotified: boolean;
+    crisisResourcesShown: boolean;
+    crisisSignalDetected: boolean;
+    hadVoiceComponent: boolean;
+    apologyBridgeShown: boolean;
+}
 export interface Stats {
     totalEntries: bigint;
     moodFrequency: Array<[string, bigint]>;
@@ -126,6 +190,32 @@ export interface VeilVoiceMomentsEnabled {
     after_voice_dump: boolean;
     morning_follow_up: boolean;
 }
+export interface SurfaceDelivery {
+    id: string;
+    deliveredAt?: Time;
+    surfaceType: string;
+    userId: Principal;
+    createdAt: Time;
+    deliveryStatus: string;
+    scheduledForSessionAfter: Time;
+    signalId: string;
+    dismissed: boolean;
+}
+export interface SignificanceSignal {
+    id: string;
+    surfaceTypeUsed?: string;
+    significanceScore: number;
+    eligibleForReturnAfter: Time;
+    userId: Principal;
+    usedInSurface: boolean;
+    rawEmotionIntensity: bigint;
+    createdAt: Time;
+    contextSnapshot: string;
+    signalIntensity: number;
+    rawEmotionType: string;
+    returnedAt?: Time;
+    signalType: string;
+}
 export interface JournalEntry {
     id: string;
     title: string;
@@ -161,6 +251,15 @@ export interface ApologyEntry {
     nonVeilTokenExpires?: bigint;
     openedAt?: bigint;
 }
+export interface QuickReleaseConfig {
+    userId: Principal;
+    platform: string;
+    activationCount: bigint;
+    setupDate?: bigint;
+    setupCompleted: boolean;
+    lastActivatedAt?: bigint;
+    phrase: string;
+}
 export interface EmotionEntry {
     id: string;
     emotionType: string;
@@ -179,6 +278,27 @@ export interface EmotionEntry {
     textReflection?: string;
     voiceOverrideApplied: boolean;
 }
+export interface SignificantMomentsSettings {
+    returnLetterEnabled: boolean;
+    memoryMirrorEnabled: boolean;
+    becomingMomentEnabled: boolean;
+    userId: Principal;
+    createdAt: Time;
+    enabled: boolean;
+    updatedAt: Time;
+    milestoneHoldEnabled: boolean;
+    frequency: string;
+    whisperEnabled: boolean;
+    peakSealEnabled: boolean;
+}
+export interface EmotionStreakRecord {
+    acknowledgmentType?: string;
+    emotionType: string;
+    lastAwarenessShownAt?: bigint;
+    updatedAt: bigint;
+    crisisResourcesShown: boolean;
+    lastAwarenessMilestone?: bigint;
+}
 export interface CompanionDump {
     id: string;
     releasedPermanently: boolean;
@@ -194,28 +314,18 @@ export interface CompanionDump {
     audioStored: boolean;
     textContent?: string;
 }
-export interface EmotionStreakRecord {
-    acknowledgmentType?: string;
-    emotionType: string;
-    lastAwarenessShownAt?: bigint;
-    updatedAt: bigint;
-    crisisResourcesShown: boolean;
-    lastAwarenessMilestone?: bigint;
-}
 export interface UserProfile {
     displayName: string;
 }
-export interface ApologySchedule {
+export interface FutureLetterDelivery {
     id: string;
-    status: string;
-    deliveredAt?: bigint;
-    apologyId: string;
-    rescheduleCount: bigint;
-    cancelledAt?: bigint;
-    scheduledDeliveryTime: bigint;
-    reminderSent: boolean;
-    reminderSentAt?: bigint;
-    senderUserId: Principal;
+    writtenAt: Time;
+    deliveredAt?: Time;
+    deliveryTriggerJson: string;
+    userId: Principal;
+    deliveryStatus: string;
+    overrideDate: Time;
+    letterId: string;
 }
 export enum UserRole {
     admin = "admin",
@@ -230,9 +340,14 @@ export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     cancelApologySchedule(apologyId: string): Promise<boolean>;
     createApology(content: string, signature: string, emotionType: string, isAnonymous: boolean, aiAssisted: boolean, aiVersionUsed: string, source: string, crisisSignalDetected: boolean): Promise<string>;
+    createConfession(mode: string, content: string, wordCount: bigint, hadVoiceComponent: boolean, witnessUserId: Principal | null, crisisSignalDetected: boolean, crisisResourcesShown: boolean): Promise<string>;
+    createLoveLetter(letterType: string, openingLine: string, bodyText: string, closingLine: string, signature: string, wordCount: bigint, visualStyle: string, isAnonymous: boolean, aiAssisted: boolean, aiVersionUsed: string, editLevel: string, deliveryMethod: string, deliveryTime: bigint | null, recipientType: string, recipientContact: string | null, nonVeilToken: string | null, nonVeilTokenExpires: bigint | null, crisisSignalDetected: boolean): Promise<string>;
     deleteAllMyApologies(): Promise<boolean>;
+    deleteAllMySignificanceData(): Promise<boolean>;
+    deleteConfession(confessionId: string): Promise<boolean>;
     deleteJournalEntry(id: string): Promise<void>;
     deleteUnsentApology(apologyId: string): Promise<boolean>;
+    dismissSurfaceDelivery(id: string): Promise<boolean>;
     getAllApologySenderIds(): Promise<Array<Principal>>;
     getAllJournalEntries(): Promise<Array<JournalEntry>>;
     getAllReflections(): Promise<Array<Reflection>>;
@@ -240,39 +355,51 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCompanionDumps(): Promise<Array<CompanionDump>>;
+    getConfessions(): Promise<Array<Confession>>;
     getEmotionEntries(): Promise<Array<EmotionEntry>>;
     getEmotionStreakRecord(emotionType: string): Promise<EmotionStreakRecord | null>;
+    getFutureLetterDeliveries(): Promise<Array<FutureLetterDelivery>>;
     getInnerCircle(): Promise<Array<Principal>>;
+    getLoveLettersBySender(): Promise<Array<LoveLetter>>;
     getMyApologies(): Promise<Array<ApologyEntry>>;
     getMyScheduledApologies(): Promise<Array<ApologySchedule>>;
     getMyUnsentApologies(): Promise<Array<ApologyEntry>>;
+    getQuickReleaseConfig(platform: string): Promise<QuickReleaseConfig | null>;
     getReceivedApologies(): Promise<Array<ApologyEntry>>;
     getReceiverReflection(apologyId: string): Promise<ApologyReceiverReflection | null>;
+    getSignificanceSignals(): Promise<Array<SignificanceSignal>>;
+    getSignificantMomentsSettings(): Promise<SignificantMomentsSettings | null>;
     getStats(): Promise<Stats>;
+    getSurfaceDeliveries(): Promise<Array<SurfaceDelivery>>;
     getTodaysDump(): Promise<CompanionDump | null>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getVeilVoiceSettings(): Promise<VeilVoiceSettings | null>;
     isCallerAdmin(): Promise<boolean>;
+    logQuickReleaseSession(platform: string, accessPoint: string, dumpType: string | null, dumpCompleted: boolean, sessionDuration: bigint | null, returnedTo: string): Promise<string>;
+    markFutureLetterDelivered(id: string): Promise<boolean>;
+    markSurfaceDelivered(id: string, surfaceType: string): Promise<boolean>;
+    recordSignificanceSignal(signalType: string, signalIntensity: number, rawEmotionType: string, rawEmotionIntensity: bigint, contextSnapshot: string, eligibleForReturnAfterDays: bigint): Promise<string>;
+    recordSurfaceDelivery(signalId: string, surfaceType: string, scheduledForSessionAfter: Time): Promise<string>;
     rescheduleApology(apologyId: string, newDeliveryTime: bigint): Promise<boolean>;
     saveApologyAsUnsent(apologyId: string): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     saveCompanionDump(contentType: string, textContent: string | null, voiceDurationSeconds: bigint | null, crisisSignalDetected: boolean, crisisResourcesShown: boolean, exhaleMessageShown: string, streakDay: bigint): Promise<string>;
     saveEmotionEntry(emotionType: string, emotionLabel: string, emoji: string, customEmotionLabel: string | null, textReflection: string | null, voiceDurationSeconds: bigint | null, visibilityLevel: string, voiceOverrideApplied: boolean, aiPromptShown: boolean, aiPromptText: string | null, crisisSignalDetected: boolean, crisisResourcesShown: boolean, exhaleMessageShown: string): Promise<string>;
     saveEmotionStreakRecord(emotionType: string, lastAwarenessMilestone: bigint | null, acknowledgmentType: string | null, crisisResourcesShown: boolean): Promise<void>;
+    saveFutureLetterDelivery(letterId: string, deliveryTriggerJson: string, overrideDays: bigint): Promise<string>;
+    saveLoveLetterReaction(letterId: string, reactionType: string, replyLetterId: string | null): Promise<boolean>;
+    saveQuickReleaseConfig(platform: string, phrase: string, setupCompleted: boolean): Promise<boolean>;
     saveReceiverReflection(apologyId: string, emotionSelected: string, privateReflectionText: string | null, actionTaken: string): Promise<boolean>;
+    saveSignificantMomentsSettings(enabled: boolean, whisperEnabled: boolean, memoryMirrorEnabled: boolean, returnLetterEnabled: boolean, becomingMomentEnabled: boolean, milestoneHoldEnabled: boolean, peakSealEnabled: boolean, frequency: string): Promise<void>;
     saveVeilVoiceSettings(voice_enabled: boolean, after_voice_dump: boolean, after_text_dump: boolean, after_silent_dump: boolean, morning_follow_up: boolean, carrying_awareness: boolean, after_checkin: boolean, onboarding_completed: boolean): Promise<void>;
+    saveWitnessResponse(confessionId: string, responseType: string): Promise<boolean>;
     scheduleApology(apologyId: string, recipientUserId: Principal | null, recipientType: string, recipientContact: string | null, deliveryTime: bigint): Promise<boolean>;
+    scheduleLoveLetter(letterId: string, scheduledDeliveryTime: bigint, deliveryType: string): Promise<boolean>;
     sendApologyNow(apologyId: string, recipientUserId: Principal | null, recipientType: string, recipientContact: string | null): Promise<boolean>;
     updateApologyContent(apologyId: string, content: string, editLevel: string): Promise<boolean>;
-    createConfession(mode: string, content: string, wordCount: bigint, hadVoiceComponent: boolean, witnessUserId: Principal | null, crisisSignalDetected: boolean, crisisResourcesShown: boolean): Promise<string>;
-    getConfessions(): Promise<Array<Record<string, unknown>>>;
-    saveWitnessResponse(confessionId: string, responseType: string): Promise<boolean>;
-    deleteConfession(confessionId: string): Promise<boolean>;
-    logQuickReleaseSession(platform: string, accessPoint: string, dumpType: Array<string | null>, dumpCompleted: boolean, sessionDuration: Array<number>, returnedTo: string): Promise<string>;
-    saveQuickReleaseConfig(platform: string, phrase: string, setupCompleted: boolean): Promise<void>;
-    getQuickReleaseConfig(platform: string): Promise<Record<string, unknown> | null>;
+    updateSignificanceScore(id: string, score: number): Promise<boolean>;
 }
-import type { ApologyEntry as _ApologyEntry, ApologyReceiverReflection as _ApologyReceiverReflection, ApologySchedule as _ApologySchedule, CompanionDump as _CompanionDump, EmotionEntry as _EmotionEntry, EmotionStreakRecord as _EmotionStreakRecord, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole, VeilVoiceSettings as _VeilVoiceSettings } from "./declarations/backend.did.d.ts";
+import type { ApologyEntry as _ApologyEntry, ApologyReceiverReflection as _ApologyReceiverReflection, ApologySchedule as _ApologySchedule, CompanionDump as _CompanionDump, Confession as _Confession, EmotionEntry as _EmotionEntry, EmotionStreakRecord as _EmotionStreakRecord, FutureLetterDelivery as _FutureLetterDelivery, LoveLetter as _LoveLetter, QuickReleaseConfig as _QuickReleaseConfig, SignificanceSignal as _SignificanceSignal, SignificantMomentsSettings as _SignificantMomentsSettings, SurfaceDelivery as _SurfaceDelivery, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole, VeilVoiceSettings as _VeilVoiceSettings } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
@@ -373,6 +500,34 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async createConfession(arg0: string, arg1: string, arg2: bigint, arg3: boolean, arg4: Principal | null, arg5: boolean, arg6: boolean): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createConfession(arg0, arg1, arg2, arg3, to_candid_opt_n3(this._uploadFile, this._downloadFile, arg4), arg5, arg6);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createConfession(arg0, arg1, arg2, arg3, to_candid_opt_n3(this._uploadFile, this._downloadFile, arg4), arg5, arg6);
+            return result;
+        }
+    }
+    async createLoveLetter(arg0: string, arg1: string, arg2: string, arg3: string, arg4: string, arg5: bigint, arg6: string, arg7: boolean, arg8: boolean, arg9: string, arg10: string, arg11: string, arg12: bigint | null, arg13: string, arg14: string | null, arg15: string | null, arg16: bigint | null, arg17: boolean): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createLoveLetter(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, to_candid_opt_n4(this._uploadFile, this._downloadFile, arg12), arg13, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg14), to_candid_opt_n5(this._uploadFile, this._downloadFile, arg15), to_candid_opt_n4(this._uploadFile, this._downloadFile, arg16), arg17);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createLoveLetter(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, to_candid_opt_n4(this._uploadFile, this._downloadFile, arg12), arg13, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg14), to_candid_opt_n5(this._uploadFile, this._downloadFile, arg15), to_candid_opt_n4(this._uploadFile, this._downloadFile, arg16), arg17);
+            return result;
+        }
+    }
     async deleteAllMyApologies(): Promise<boolean> {
         if (this.processError) {
             try {
@@ -384,6 +539,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.deleteAllMyApologies();
+            return result;
+        }
+    }
+    async deleteAllMySignificanceData(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteAllMySignificanceData();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteAllMySignificanceData();
+            return result;
+        }
+    }
+    async deleteConfession(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteConfession(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteConfession(arg0);
             return result;
         }
     }
@@ -412,6 +595,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.deleteUnsentApology(arg0);
+            return result;
+        }
+    }
+    async dismissSurfaceDelivery(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.dismissSurfaceDelivery(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.dismissSurfaceDelivery(arg0);
             return result;
         }
     }
@@ -461,84 +658,112 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getApologyById(arg0);
-                return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n6(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getApologyById(arg0);
-            return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n6(this._uploadFile, this._downloadFile, result);
         }
     }
     async getCallerUserProfile(): Promise<UserProfile | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserProfile();
-                return from_candid_opt_n9(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n12(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserProfile();
-            return from_candid_opt_n9(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n12(this._uploadFile, this._downloadFile, result);
         }
     }
     async getCallerUserRole(): Promise<UserRole> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserRole();
-                return from_candid_UserRole_n10(this._uploadFile, this._downloadFile, result);
+                return from_candid_UserRole_n13(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserRole();
-            return from_candid_UserRole_n10(this._uploadFile, this._downloadFile, result);
+            return from_candid_UserRole_n13(this._uploadFile, this._downloadFile, result);
         }
     }
     async getCompanionDumps(): Promise<Array<CompanionDump>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCompanionDumps();
-                return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n15(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCompanionDumps();
-            return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n15(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getConfessions(): Promise<Array<Confession>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getConfessions();
+                return from_candid_vec_n19(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getConfessions();
+            return from_candid_vec_n19(this._uploadFile, this._downloadFile, result);
         }
     }
     async getEmotionEntries(): Promise<Array<EmotionEntry>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getEmotionEntries();
-                return from_candid_vec_n16(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getEmotionEntries();
-            return from_candid_vec_n16(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
         }
     }
     async getEmotionStreakRecord(arg0: string): Promise<EmotionStreakRecord | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getEmotionStreakRecord(arg0);
-                return from_candid_opt_n19(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n25(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getEmotionStreakRecord(arg0);
-            return from_candid_opt_n19(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n25(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getFutureLetterDeliveries(): Promise<Array<FutureLetterDelivery>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getFutureLetterDeliveries();
+                return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getFutureLetterDeliveries();
+            return from_candid_vec_n28(this._uploadFile, this._downloadFile, result);
         }
     }
     async getInnerCircle(): Promise<Array<Principal>> {
@@ -555,74 +780,130 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getLoveLettersBySender(): Promise<Array<LoveLetter>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getLoveLettersBySender();
+                return from_candid_vec_n32(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getLoveLettersBySender();
+            return from_candid_vec_n32(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async getMyApologies(): Promise<Array<ApologyEntry>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getMyApologies();
-                return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n35(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getMyApologies();
-            return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n35(this._uploadFile, this._downloadFile, result);
         }
     }
     async getMyScheduledApologies(): Promise<Array<ApologySchedule>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getMyScheduledApologies();
-                return from_candid_vec_n23(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n36(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getMyScheduledApologies();
-            return from_candid_vec_n23(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n36(this._uploadFile, this._downloadFile, result);
         }
     }
     async getMyUnsentApologies(): Promise<Array<ApologyEntry>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getMyUnsentApologies();
-                return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n35(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getMyUnsentApologies();
-            return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n35(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getQuickReleaseConfig(arg0: string): Promise<QuickReleaseConfig | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getQuickReleaseConfig(arg0);
+                return from_candid_opt_n39(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getQuickReleaseConfig(arg0);
+            return from_candid_opt_n39(this._uploadFile, this._downloadFile, result);
         }
     }
     async getReceivedApologies(): Promise<Array<ApologyEntry>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getReceivedApologies();
-                return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n35(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getReceivedApologies();
-            return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n35(this._uploadFile, this._downloadFile, result);
         }
     }
     async getReceiverReflection(arg0: string): Promise<ApologyReceiverReflection | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getReceiverReflection(arg0);
-                return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n42(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getReceiverReflection(arg0);
-            return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n42(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getSignificanceSignals(): Promise<Array<SignificanceSignal>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getSignificanceSignals();
+                return from_candid_vec_n45(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getSignificanceSignals();
+            return from_candid_vec_n45(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getSignificantMomentsSettings(): Promise<SignificantMomentsSettings | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getSignificantMomentsSettings();
+                return from_candid_opt_n48(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getSignificantMomentsSettings();
+            return from_candid_opt_n48(this._uploadFile, this._downloadFile, result);
         }
     }
     async getStats(): Promise<Stats> {
@@ -639,46 +920,60 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getSurfaceDeliveries(): Promise<Array<SurfaceDelivery>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getSurfaceDeliveries();
+                return from_candid_vec_n49(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getSurfaceDeliveries();
+            return from_candid_vec_n49(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async getTodaysDump(): Promise<CompanionDump | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getTodaysDump();
-                return from_candid_opt_n29(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n52(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getTodaysDump();
-            return from_candid_opt_n29(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n52(this._uploadFile, this._downloadFile, result);
         }
     }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getUserProfile(arg0);
-                return from_candid_opt_n9(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n12(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getUserProfile(arg0);
-            return from_candid_opt_n9(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n12(this._uploadFile, this._downloadFile, result);
         }
     }
     async getVeilVoiceSettings(): Promise<VeilVoiceSettings | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getVeilVoiceSettings();
-                return from_candid_opt_n30(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n53(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getVeilVoiceSettings();
-            return from_candid_opt_n30(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n53(this._uploadFile, this._downloadFile, result);
         }
     }
     async isCallerAdmin(): Promise<boolean> {
@@ -692,6 +987,76 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.isCallerAdmin();
+            return result;
+        }
+    }
+    async logQuickReleaseSession(arg0: string, arg1: string, arg2: string | null, arg3: boolean, arg4: bigint | null, arg5: string): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.logQuickReleaseSession(arg0, arg1, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg2), arg3, to_candid_opt_n54(this._uploadFile, this._downloadFile, arg4), arg5);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.logQuickReleaseSession(arg0, arg1, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg2), arg3, to_candid_opt_n54(this._uploadFile, this._downloadFile, arg4), arg5);
+            return result;
+        }
+    }
+    async markFutureLetterDelivered(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.markFutureLetterDelivered(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.markFutureLetterDelivered(arg0);
+            return result;
+        }
+    }
+    async markSurfaceDelivered(arg0: string, arg1: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.markSurfaceDelivered(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.markSurfaceDelivered(arg0, arg1);
+            return result;
+        }
+    }
+    async recordSignificanceSignal(arg0: string, arg1: number, arg2: string, arg3: bigint, arg4: string, arg5: bigint): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.recordSignificanceSignal(arg0, arg1, arg2, arg3, arg4, arg5);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.recordSignificanceSignal(arg0, arg1, arg2, arg3, arg4, arg5);
+            return result;
+        }
+    }
+    async recordSurfaceDelivery(arg0: string, arg1: string, arg2: Time): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.recordSurfaceDelivery(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.recordSurfaceDelivery(arg0, arg1, arg2);
             return result;
         }
     }
@@ -740,56 +1105,112 @@ export class Backend implements backendInterface {
     async saveCompanionDump(arg0: string, arg1: string | null, arg2: bigint | null, arg3: boolean, arg4: boolean, arg5: string, arg6: bigint): Promise<string> {
         if (this.processError) {
             try {
-                const result = await this.actor.saveCompanionDump(arg0, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n32(this._uploadFile, this._downloadFile, arg2), arg3, arg4, arg5, arg6);
+                const result = await this.actor.saveCompanionDump(arg0, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n54(this._uploadFile, this._downloadFile, arg2), arg3, arg4, arg5, arg6);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.saveCompanionDump(arg0, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n32(this._uploadFile, this._downloadFile, arg2), arg3, arg4, arg5, arg6);
+            const result = await this.actor.saveCompanionDump(arg0, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n54(this._uploadFile, this._downloadFile, arg2), arg3, arg4, arg5, arg6);
             return result;
         }
     }
     async saveEmotionEntry(arg0: string, arg1: string, arg2: string, arg3: string | null, arg4: string | null, arg5: bigint | null, arg6: string, arg7: boolean, arg8: boolean, arg9: string | null, arg10: boolean, arg11: boolean, arg12: string): Promise<string> {
         if (this.processError) {
             try {
-                const result = await this.actor.saveEmotionEntry(arg0, arg1, arg2, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n31(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n32(this._uploadFile, this._downloadFile, arg5), arg6, arg7, arg8, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg9), arg10, arg11, arg12);
+                const result = await this.actor.saveEmotionEntry(arg0, arg1, arg2, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n5(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n54(this._uploadFile, this._downloadFile, arg5), arg6, arg7, arg8, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg9), arg10, arg11, arg12);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.saveEmotionEntry(arg0, arg1, arg2, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n31(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n32(this._uploadFile, this._downloadFile, arg5), arg6, arg7, arg8, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg9), arg10, arg11, arg12);
+            const result = await this.actor.saveEmotionEntry(arg0, arg1, arg2, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n5(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n54(this._uploadFile, this._downloadFile, arg5), arg6, arg7, arg8, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg9), arg10, arg11, arg12);
             return result;
         }
     }
     async saveEmotionStreakRecord(arg0: string, arg1: bigint | null, arg2: string | null, arg3: boolean): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.saveEmotionStreakRecord(arg0, to_candid_opt_n32(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n31(this._uploadFile, this._downloadFile, arg2), arg3);
+                const result = await this.actor.saveEmotionStreakRecord(arg0, to_candid_opt_n54(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n5(this._uploadFile, this._downloadFile, arg2), arg3);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.saveEmotionStreakRecord(arg0, to_candid_opt_n32(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n31(this._uploadFile, this._downloadFile, arg2), arg3);
+            const result = await this.actor.saveEmotionStreakRecord(arg0, to_candid_opt_n54(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n5(this._uploadFile, this._downloadFile, arg2), arg3);
+            return result;
+        }
+    }
+    async saveFutureLetterDelivery(arg0: string, arg1: string, arg2: bigint): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveFutureLetterDelivery(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveFutureLetterDelivery(arg0, arg1, arg2);
+            return result;
+        }
+    }
+    async saveLoveLetterReaction(arg0: string, arg1: string, arg2: string | null): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveLoveLetterReaction(arg0, arg1, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg2));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveLoveLetterReaction(arg0, arg1, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg2));
+            return result;
+        }
+    }
+    async saveQuickReleaseConfig(arg0: string, arg1: string, arg2: boolean): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveQuickReleaseConfig(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveQuickReleaseConfig(arg0, arg1, arg2);
             return result;
         }
     }
     async saveReceiverReflection(arg0: string, arg1: string, arg2: string | null, arg3: string): Promise<boolean> {
         if (this.processError) {
             try {
-                const result = await this.actor.saveReceiverReflection(arg0, arg1, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg2), arg3);
+                const result = await this.actor.saveReceiverReflection(arg0, arg1, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg2), arg3);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.saveReceiverReflection(arg0, arg1, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg2), arg3);
+            const result = await this.actor.saveReceiverReflection(arg0, arg1, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg2), arg3);
+            return result;
+        }
+    }
+    async saveSignificantMomentsSettings(arg0: boolean, arg1: boolean, arg2: boolean, arg3: boolean, arg4: boolean, arg5: boolean, arg6: boolean, arg7: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveSignificantMomentsSettings(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveSignificantMomentsSettings(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
             return result;
         }
     }
@@ -807,31 +1228,59 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async scheduleApology(arg0: string, arg1: Principal | null, arg2: string, arg3: string | null, arg4: bigint): Promise<boolean> {
+    async saveWitnessResponse(arg0: string, arg1: string): Promise<boolean> {
         if (this.processError) {
             try {
-                const result = await this.actor.scheduleApology(arg0, to_candid_opt_n33(this._uploadFile, this._downloadFile, arg1), arg2, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg3), arg4);
+                const result = await this.actor.saveWitnessResponse(arg0, arg1);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.scheduleApology(arg0, to_candid_opt_n33(this._uploadFile, this._downloadFile, arg1), arg2, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg3), arg4);
+            const result = await this.actor.saveWitnessResponse(arg0, arg1);
+            return result;
+        }
+    }
+    async scheduleApology(arg0: string, arg1: Principal | null, arg2: string, arg3: string | null, arg4: bigint): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.scheduleApology(arg0, to_candid_opt_n3(this._uploadFile, this._downloadFile, arg1), arg2, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg3), arg4);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.scheduleApology(arg0, to_candid_opt_n3(this._uploadFile, this._downloadFile, arg1), arg2, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg3), arg4);
+            return result;
+        }
+    }
+    async scheduleLoveLetter(arg0: string, arg1: bigint, arg2: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.scheduleLoveLetter(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.scheduleLoveLetter(arg0, arg1, arg2);
             return result;
         }
     }
     async sendApologyNow(arg0: string, arg1: Principal | null, arg2: string, arg3: string | null): Promise<boolean> {
         if (this.processError) {
             try {
-                const result = await this.actor.sendApologyNow(arg0, to_candid_opt_n33(this._uploadFile, this._downloadFile, arg1), arg2, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg3));
+                const result = await this.actor.sendApologyNow(arg0, to_candid_opt_n3(this._uploadFile, this._downloadFile, arg1), arg2, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg3));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.sendApologyNow(arg0, to_candid_opt_n33(this._uploadFile, this._downloadFile, arg1), arg2, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg3));
+            const result = await this.actor.sendApologyNow(arg0, to_candid_opt_n3(this._uploadFile, this._downloadFile, arg1), arg2, to_candid_opt_n5(this._uploadFile, this._downloadFile, arg3));
             return result;
         }
     }
@@ -849,80 +1298,100 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async createConfession(mode: string, content: string, wordCount: bigint, hadVoiceComponent: boolean, witnessUserId: Principal | null, crisisSignalDetected: boolean, crisisResourcesShown: boolean): Promise<string> {
-        return (this.actor as any).createConfession(mode, content, wordCount, hadVoiceComponent, witnessUserId ? [witnessUserId] : [], crisisSignalDetected, crisisResourcesShown).catch(() => "");
-    }
-    async getConfessions(): Promise<Array<Record<string, unknown>>> {
-        return (this.actor as any).getConfessions().catch(() => []);
-    }
-    async saveWitnessResponse(confessionId: string, responseType: string): Promise<boolean> {
-        return (this.actor as any).saveWitnessResponse(confessionId, responseType).catch(() => false);
-    }
-    async deleteConfession(confessionId: string): Promise<boolean> {
-        return (this.actor as any).deleteConfession(confessionId).catch(() => false);
-    }
-    async logQuickReleaseSession(platform: string, accessPoint: string, dumpType: Array<string | null>, dumpCompleted: boolean, sessionDuration: Array<number>, returnedTo: string): Promise<string> {
-        return (this.actor as any).logQuickReleaseSession(platform, accessPoint, dumpType, dumpCompleted, sessionDuration, returnedTo).catch(() => "");
-    }
-    async saveQuickReleaseConfig(platform: string, phrase: string, setupCompleted: boolean): Promise<void> {
-        return (this.actor as any).saveQuickReleaseConfig(platform, phrase, setupCompleted).catch(() => undefined);
-    }
-    async getQuickReleaseConfig(platform: string): Promise<Record<string, unknown> | null> {
-        return (this.actor as any).getQuickReleaseConfig(platform).catch(() => null);
+    async updateSignificanceScore(arg0: string, arg1: number): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateSignificanceScore(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateSignificanceScore(arg0, arg1);
+            return result;
+        }
     }
 }
-function from_candid_ApologyEntry_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ApologyEntry): ApologyEntry {
-    return from_candid_record_n5(_uploadFile, _downloadFile, value);
+function from_candid_ApologyEntry_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ApologyEntry): ApologyEntry {
+    return from_candid_record_n8(_uploadFile, _downloadFile, value);
 }
-function from_candid_ApologyReceiverReflection_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ApologyReceiverReflection): ApologyReceiverReflection {
-    return from_candid_record_n28(_uploadFile, _downloadFile, value);
+function from_candid_ApologyReceiverReflection_n43(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ApologyReceiverReflection): ApologyReceiverReflection {
+    return from_candid_record_n44(_uploadFile, _downloadFile, value);
 }
-function from_candid_ApologySchedule_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ApologySchedule): ApologySchedule {
-    return from_candid_record_n25(_uploadFile, _downloadFile, value);
+function from_candid_ApologySchedule_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ApologySchedule): ApologySchedule {
+    return from_candid_record_n38(_uploadFile, _downloadFile, value);
 }
-function from_candid_CompanionDump_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CompanionDump): CompanionDump {
-    return from_candid_record_n14(_uploadFile, _downloadFile, value);
+function from_candid_CompanionDump_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CompanionDump): CompanionDump {
+    return from_candid_record_n17(_uploadFile, _downloadFile, value);
 }
-function from_candid_EmotionEntry_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _EmotionEntry): EmotionEntry {
-    return from_candid_record_n18(_uploadFile, _downloadFile, value);
-}
-function from_candid_EmotionStreakRecord_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _EmotionStreakRecord): EmotionStreakRecord {
+function from_candid_Confession_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Confession): Confession {
     return from_candid_record_n21(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
-    return from_candid_variant_n11(_uploadFile, _downloadFile, value);
+function from_candid_EmotionEntry_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _EmotionEntry): EmotionEntry {
+    return from_candid_record_n24(_uploadFile, _downloadFile, value);
 }
-function from_candid_opt_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
+function from_candid_EmotionStreakRecord_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _EmotionStreakRecord): EmotionStreakRecord {
+    return from_candid_record_n27(_uploadFile, _downloadFile, value);
+}
+function from_candid_FutureLetterDelivery_n29(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _FutureLetterDelivery): FutureLetterDelivery {
+    return from_candid_record_n30(_uploadFile, _downloadFile, value);
+}
+function from_candid_LoveLetter_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _LoveLetter): LoveLetter {
+    return from_candid_record_n34(_uploadFile, _downloadFile, value);
+}
+function from_candid_QuickReleaseConfig_n40(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _QuickReleaseConfig): QuickReleaseConfig {
+    return from_candid_record_n41(_uploadFile, _downloadFile, value);
+}
+function from_candid_SignificanceSignal_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _SignificanceSignal): SignificanceSignal {
+    return from_candid_record_n47(_uploadFile, _downloadFile, value);
+}
+function from_candid_SurfaceDelivery_n50(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _SurfaceDelivery): SurfaceDelivery {
+    return from_candid_record_n51(_uploadFile, _downloadFile, value);
+}
+function from_candid_UserRole_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
+    return from_candid_variant_n14(_uploadFile, _downloadFile, value);
+}
+function from_candid_opt_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_EmotionStreakRecord]): EmotionStreakRecord | null {
-    return value.length === 0 ? null : from_candid_EmotionStreakRecord_n20(_uploadFile, _downloadFile, value[0]);
-}
-function from_candid_opt_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_ApologyReceiverReflection]): ApologyReceiverReflection | null {
-    return value.length === 0 ? null : from_candid_ApologyReceiverReflection_n27(_uploadFile, _downloadFile, value[0]);
-}
-function from_candid_opt_n29(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_CompanionDump]): CompanionDump | null {
-    return value.length === 0 ? null : from_candid_CompanionDump_n13(_uploadFile, _downloadFile, value[0]);
-}
-function from_candid_opt_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_ApologyEntry]): ApologyEntry | null {
-    return value.length === 0 ? null : from_candid_ApologyEntry_n4(_uploadFile, _downloadFile, value[0]);
-}
-function from_candid_opt_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_VeilVoiceSettings]): VeilVoiceSettings | null {
+function from_candid_opt_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [Principal]): Principal | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [string]): string | null {
+function from_candid_opt_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
+function from_candid_opt_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [Principal]): Principal | null {
+function from_candid_opt_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_EmotionStreakRecord]): EmotionStreakRecord | null {
+    return value.length === 0 ? null : from_candid_EmotionStreakRecord_n26(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Time]): Time | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
+function from_candid_opt_n39(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_QuickReleaseConfig]): QuickReleaseConfig | null {
+    return value.length === 0 ? null : from_candid_QuickReleaseConfig_n40(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n42(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_ApologyReceiverReflection]): ApologyReceiverReflection | null {
+    return value.length === 0 ? null : from_candid_ApologyReceiverReflection_n43(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n48(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_SignificantMomentsSettings]): SignificantMomentsSettings | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_record_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_opt_n52(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_CompanionDump]): CompanionDump | null {
+    return value.length === 0 ? null : from_candid_CompanionDump_n16(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n53(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_VeilVoiceSettings]): VeilVoiceSettings | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_ApologyEntry]): ApologyEntry | null {
+    return value.length === 0 ? null : from_candid_ApologyEntry_n7(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [string]): string | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_record_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: string;
     releasedPermanently: boolean;
     voiceDurationSeconds: [] | [bigint];
@@ -954,7 +1423,7 @@ function from_candid_record_n14(_uploadFile: (file: ExternalBlob) => Promise<Uin
     return {
         id: value.id,
         releasedPermanently: value.releasedPermanently,
-        voiceDurationSeconds: record_opt_to_undefined(from_candid_opt_n15(_uploadFile, _downloadFile, value.voiceDurationSeconds)),
+        voiceDurationSeconds: record_opt_to_undefined(from_candid_opt_n18(_uploadFile, _downloadFile, value.voiceDurationSeconds)),
         contentType: value.contentType,
         source: value.source,
         exhaleMessageShown: value.exhaleMessageShown,
@@ -964,10 +1433,70 @@ function from_candid_record_n14(_uploadFile: (file: ExternalBlob) => Promise<Uin
         streakDay: value.streakDay,
         visibility: value.visibility,
         audioStored: value.audioStored,
-        textContent: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.textContent))
+        textContent: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.textContent))
     };
 }
-function from_candid_record_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: string;
+    apologyCreatedAfter: boolean;
+    witnessResponseDelivered: boolean;
+    content: string;
+    deletionRequested: boolean;
+    wordCount: bigint;
+    userId: Principal;
+    mode: string;
+    createdAt: bigint;
+    witnessOpened: boolean;
+    onThisDaySurfaced: boolean;
+    witnessResponse: [] | [string];
+    witnessUserId: [] | [Principal];
+    witnessNotified: boolean;
+    crisisResourcesShown: boolean;
+    crisisSignalDetected: boolean;
+    hadVoiceComponent: boolean;
+    apologyBridgeShown: boolean;
+}): {
+    id: string;
+    apologyCreatedAfter: boolean;
+    witnessResponseDelivered: boolean;
+    content: string;
+    deletionRequested: boolean;
+    wordCount: bigint;
+    userId: Principal;
+    mode: string;
+    createdAt: bigint;
+    witnessOpened: boolean;
+    onThisDaySurfaced: boolean;
+    witnessResponse?: string;
+    witnessUserId?: Principal;
+    witnessNotified: boolean;
+    crisisResourcesShown: boolean;
+    crisisSignalDetected: boolean;
+    hadVoiceComponent: boolean;
+    apologyBridgeShown: boolean;
+} {
+    return {
+        id: value.id,
+        apologyCreatedAfter: value.apologyCreatedAfter,
+        witnessResponseDelivered: value.witnessResponseDelivered,
+        content: value.content,
+        deletionRequested: value.deletionRequested,
+        wordCount: value.wordCount,
+        userId: value.userId,
+        mode: value.mode,
+        createdAt: value.createdAt,
+        witnessOpened: value.witnessOpened,
+        onThisDaySurfaced: value.onThisDaySurfaced,
+        witnessResponse: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.witnessResponse)),
+        witnessUserId: record_opt_to_undefined(from_candid_opt_n11(_uploadFile, _downloadFile, value.witnessUserId)),
+        witnessNotified: value.witnessNotified,
+        crisisResourcesShown: value.crisisResourcesShown,
+        crisisSignalDetected: value.crisisSignalDetected,
+        hadVoiceComponent: value.hadVoiceComponent,
+        apologyBridgeShown: value.apologyBridgeShown
+    };
+}
+function from_candid_record_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: string;
     emotionType: string;
     aiPromptText: [] | [string];
@@ -1005,9 +1534,9 @@ function from_candid_record_n18(_uploadFile: (file: ExternalBlob) => Promise<Uin
     return {
         id: value.id,
         emotionType: value.emotionType,
-        aiPromptText: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.aiPromptText)),
-        customEmotionLabel: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.customEmotionLabel)),
-        voiceDurationSeconds: record_opt_to_undefined(from_candid_opt_n15(_uploadFile, _downloadFile, value.voiceDurationSeconds)),
+        aiPromptText: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.aiPromptText)),
+        customEmotionLabel: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.customEmotionLabel)),
+        voiceDurationSeconds: record_opt_to_undefined(from_candid_opt_n18(_uploadFile, _downloadFile, value.voiceDurationSeconds)),
         source: value.source,
         emotionLabel: value.emotionLabel,
         exhaleMessageShown: value.exhaleMessageShown,
@@ -1017,11 +1546,11 @@ function from_candid_record_n18(_uploadFile: (file: ExternalBlob) => Promise<Uin
         crisisSignalDetected: value.crisisSignalDetected,
         visibilityLevel: value.visibilityLevel,
         aiPromptShown: value.aiPromptShown,
-        textReflection: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.textReflection)),
+        textReflection: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.textReflection)),
         voiceOverrideApplied: value.voiceOverrideApplied
     };
 }
-function from_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     acknowledgmentType: [] | [string];
     emotionType: string;
     lastAwarenessShownAt: [] | [bigint];
@@ -1037,15 +1566,141 @@ function from_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uin
     lastAwarenessMilestone?: bigint;
 } {
     return {
-        acknowledgmentType: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.acknowledgmentType)),
+        acknowledgmentType: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.acknowledgmentType)),
         emotionType: value.emotionType,
-        lastAwarenessShownAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.lastAwarenessShownAt)),
+        lastAwarenessShownAt: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.lastAwarenessShownAt)),
         updatedAt: value.updatedAt,
         crisisResourcesShown: value.crisisResourcesShown,
-        lastAwarenessMilestone: record_opt_to_undefined(from_candid_opt_n15(_uploadFile, _downloadFile, value.lastAwarenessMilestone))
+        lastAwarenessMilestone: record_opt_to_undefined(from_candid_opt_n18(_uploadFile, _downloadFile, value.lastAwarenessMilestone))
     };
 }
-function from_candid_record_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: string;
+    writtenAt: _Time;
+    deliveredAt: [] | [_Time];
+    deliveryTriggerJson: string;
+    userId: Principal;
+    deliveryStatus: string;
+    overrideDate: _Time;
+    letterId: string;
+}): {
+    id: string;
+    writtenAt: Time;
+    deliveredAt?: Time;
+    deliveryTriggerJson: string;
+    userId: Principal;
+    deliveryStatus: string;
+    overrideDate: Time;
+    letterId: string;
+} {
+    return {
+        id: value.id,
+        writtenAt: value.writtenAt,
+        deliveredAt: record_opt_to_undefined(from_candid_opt_n31(_uploadFile, _downloadFile, value.deliveredAt)),
+        deliveryTriggerJson: value.deliveryTriggerJson,
+        userId: value.userId,
+        deliveryStatus: value.deliveryStatus,
+        overrideDate: value.overrideDate,
+        letterId: value.letterId
+    };
+}
+function from_candid_record_n34(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: string;
+    status: string;
+    editLevel: string;
+    nonVeilToken: [] | [string];
+    signature: string;
+    deliveredAt: [] | [bigint];
+    aiVersionUsed: string;
+    visualStyle: string;
+    feltAt: [] | [bigint];
+    wordCount: bigint;
+    journalEntryId: [] | [string];
+    createdAt: bigint;
+    recipientContact: [] | [string];
+    aiAssisted: boolean;
+    isAnonymous: boolean;
+    openingLine: string;
+    letterType: string;
+    deliveryMethod: string;
+    onThisDaySurfaced: boolean;
+    deliveryTime: [] | [bigint];
+    recipientUserId: [] | [Principal];
+    crisisSignalDetected: boolean;
+    closingLine: string;
+    bodyText: string;
+    visibility: string;
+    recipientType: string;
+    sharedWarmthTriggered: boolean;
+    senderUserId: Principal;
+    nonVeilTokenExpires: [] | [bigint];
+    openedAt: [] | [bigint];
+}): {
+    id: string;
+    status: string;
+    editLevel: string;
+    nonVeilToken?: string;
+    signature: string;
+    deliveredAt?: bigint;
+    aiVersionUsed: string;
+    visualStyle: string;
+    feltAt?: bigint;
+    wordCount: bigint;
+    journalEntryId?: string;
+    createdAt: bigint;
+    recipientContact?: string;
+    aiAssisted: boolean;
+    isAnonymous: boolean;
+    openingLine: string;
+    letterType: string;
+    deliveryMethod: string;
+    onThisDaySurfaced: boolean;
+    deliveryTime?: bigint;
+    recipientUserId?: Principal;
+    crisisSignalDetected: boolean;
+    closingLine: string;
+    bodyText: string;
+    visibility: string;
+    recipientType: string;
+    sharedWarmthTriggered: boolean;
+    senderUserId: Principal;
+    nonVeilTokenExpires?: bigint;
+    openedAt?: bigint;
+} {
+    return {
+        id: value.id,
+        status: value.status,
+        editLevel: value.editLevel,
+        nonVeilToken: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.nonVeilToken)),
+        signature: value.signature,
+        deliveredAt: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.deliveredAt)),
+        aiVersionUsed: value.aiVersionUsed,
+        visualStyle: value.visualStyle,
+        feltAt: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.feltAt)),
+        wordCount: value.wordCount,
+        journalEntryId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.journalEntryId)),
+        createdAt: value.createdAt,
+        recipientContact: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.recipientContact)),
+        aiAssisted: value.aiAssisted,
+        isAnonymous: value.isAnonymous,
+        openingLine: value.openingLine,
+        letterType: value.letterType,
+        deliveryMethod: value.deliveryMethod,
+        onThisDaySurfaced: value.onThisDaySurfaced,
+        deliveryTime: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.deliveryTime)),
+        recipientUserId: record_opt_to_undefined(from_candid_opt_n11(_uploadFile, _downloadFile, value.recipientUserId)),
+        crisisSignalDetected: value.crisisSignalDetected,
+        closingLine: value.closingLine,
+        bodyText: value.bodyText,
+        visibility: value.visibility,
+        recipientType: value.recipientType,
+        sharedWarmthTriggered: value.sharedWarmthTriggered,
+        senderUserId: value.senderUserId,
+        nonVeilTokenExpires: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.nonVeilTokenExpires)),
+        openedAt: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.openedAt))
+    };
+}
+function from_candid_record_n38(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: string;
     status: string;
     deliveredAt: [] | [bigint];
@@ -1071,17 +1726,44 @@ function from_candid_record_n25(_uploadFile: (file: ExternalBlob) => Promise<Uin
     return {
         id: value.id,
         status: value.status,
-        deliveredAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.deliveredAt)),
+        deliveredAt: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.deliveredAt)),
         apologyId: value.apologyId,
         rescheduleCount: value.rescheduleCount,
-        cancelledAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.cancelledAt)),
+        cancelledAt: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.cancelledAt)),
         scheduledDeliveryTime: value.scheduledDeliveryTime,
         reminderSent: value.reminderSent,
-        reminderSentAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.reminderSentAt)),
+        reminderSentAt: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.reminderSentAt)),
         senderUserId: value.senderUserId
     };
 }
-function from_candid_record_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n41(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    userId: Principal;
+    platform: string;
+    activationCount: bigint;
+    setupDate: [] | [bigint];
+    setupCompleted: boolean;
+    lastActivatedAt: [] | [bigint];
+    phrase: string;
+}): {
+    userId: Principal;
+    platform: string;
+    activationCount: bigint;
+    setupDate?: bigint;
+    setupCompleted: boolean;
+    lastActivatedAt?: bigint;
+    phrase: string;
+} {
+    return {
+        userId: value.userId,
+        platform: value.platform,
+        activationCount: value.activationCount,
+        setupDate: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.setupDate)),
+        setupCompleted: value.setupCompleted,
+        lastActivatedAt: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.lastActivatedAt)),
+        phrase: value.phrase
+    };
+}
+function from_candid_record_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: string;
     completedAt: [] | [bigint];
     emotionSelected: string;
@@ -1106,18 +1788,96 @@ function from_candid_record_n28(_uploadFile: (file: ExternalBlob) => Promise<Uin
 } {
     return {
         id: value.id,
-        completedAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.completedAt)),
+        completedAt: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.completedAt)),
         emotionSelected: value.emotionSelected,
         receiverUserId: value.receiverUserId,
-        journalEntryId: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.journalEntryId)),
+        journalEntryId: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.journalEntryId)),
         createdAt: value.createdAt,
-        privateReflectionText: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.privateReflectionText)),
+        privateReflectionText: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.privateReflectionText)),
         apologyId: value.apologyId,
         actionTaken: value.actionTaken,
         reflectionComplete: value.reflectionComplete
     };
 }
-function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n47(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: string;
+    surfaceTypeUsed: [] | [string];
+    significanceScore: number;
+    eligibleForReturnAfter: _Time;
+    userId: Principal;
+    usedInSurface: boolean;
+    rawEmotionIntensity: bigint;
+    createdAt: _Time;
+    contextSnapshot: string;
+    signalIntensity: number;
+    rawEmotionType: string;
+    returnedAt: [] | [_Time];
+    signalType: string;
+}): {
+    id: string;
+    surfaceTypeUsed?: string;
+    significanceScore: number;
+    eligibleForReturnAfter: Time;
+    userId: Principal;
+    usedInSurface: boolean;
+    rawEmotionIntensity: bigint;
+    createdAt: Time;
+    contextSnapshot: string;
+    signalIntensity: number;
+    rawEmotionType: string;
+    returnedAt?: Time;
+    signalType: string;
+} {
+    return {
+        id: value.id,
+        surfaceTypeUsed: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.surfaceTypeUsed)),
+        significanceScore: value.significanceScore,
+        eligibleForReturnAfter: value.eligibleForReturnAfter,
+        userId: value.userId,
+        usedInSurface: value.usedInSurface,
+        rawEmotionIntensity: value.rawEmotionIntensity,
+        createdAt: value.createdAt,
+        contextSnapshot: value.contextSnapshot,
+        signalIntensity: value.signalIntensity,
+        rawEmotionType: value.rawEmotionType,
+        returnedAt: record_opt_to_undefined(from_candid_opt_n31(_uploadFile, _downloadFile, value.returnedAt)),
+        signalType: value.signalType
+    };
+}
+function from_candid_record_n51(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: string;
+    deliveredAt: [] | [_Time];
+    surfaceType: string;
+    userId: Principal;
+    createdAt: _Time;
+    deliveryStatus: string;
+    scheduledForSessionAfter: _Time;
+    signalId: string;
+    dismissed: boolean;
+}): {
+    id: string;
+    deliveredAt?: Time;
+    surfaceType: string;
+    userId: Principal;
+    createdAt: Time;
+    deliveryStatus: string;
+    scheduledForSessionAfter: Time;
+    signalId: string;
+    dismissed: boolean;
+} {
+    return {
+        id: value.id,
+        deliveredAt: record_opt_to_undefined(from_candid_opt_n31(_uploadFile, _downloadFile, value.deliveredAt)),
+        surfaceType: value.surfaceType,
+        userId: value.userId,
+        createdAt: value.createdAt,
+        deliveryStatus: value.deliveryStatus,
+        scheduledForSessionAfter: value.scheduledForSessionAfter,
+        signalId: value.signalId,
+        dismissed: value.dismissed
+    };
+}
+function from_candid_record_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: string;
     status: string;
     editLevel: string;
@@ -1176,32 +1936,32 @@ function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint
         id: value.id,
         status: value.status,
         editLevel: value.editLevel,
-        nonVeilToken: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.nonVeilToken)),
+        nonVeilToken: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.nonVeilToken)),
         signature: value.signature,
         emotionType: value.emotionType,
         sharedSilenceTriggered: value.sharedSilenceTriggered,
         content: value.content,
-        deliveredAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.deliveredAt)),
-        acknowledgedAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.acknowledgedAt)),
+        deliveredAt: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.deliveredAt)),
+        acknowledgedAt: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.acknowledgedAt)),
         aiVersionUsed: value.aiVersionUsed,
         source: value.source,
         createdAt: value.createdAt,
-        recipientContact: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.recipientContact)),
+        recipientContact: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.recipientContact)),
         aiAssisted: value.aiAssisted,
         isAnonymous: value.isAnonymous,
         deliveryMethod: value.deliveryMethod,
-        deliveryTime: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.deliveryTime)),
-        recipientUserId: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.recipientUserId)),
+        deliveryTime: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.deliveryTime)),
+        recipientUserId: record_opt_to_undefined(from_candid_opt_n11(_uploadFile, _downloadFile, value.recipientUserId)),
         rescheduleCount: value.rescheduleCount,
         crisisSignalDetected: value.crisisSignalDetected,
         visibility: value.visibility,
         recipientType: value.recipientType,
         senderUserId: value.senderUserId,
-        nonVeilTokenExpires: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.nonVeilTokenExpires)),
-        openedAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.openedAt))
+        nonVeilTokenExpires: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.nonVeilTokenExpires)),
+        openedAt: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.openedAt))
     };
 }
-function from_candid_variant_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     admin: null;
 } | {
     user: null;
@@ -1210,28 +1970,46 @@ function from_candid_variant_n11(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): UserRole {
     return "admin" in value ? UserRole.admin : "user" in value ? UserRole.user : "guest" in value ? UserRole.guest : value;
 }
-function from_candid_vec_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_CompanionDump>): Array<CompanionDump> {
-    return value.map((x)=>from_candid_CompanionDump_n13(_uploadFile, _downloadFile, x));
+function from_candid_vec_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_CompanionDump>): Array<CompanionDump> {
+    return value.map((x)=>from_candid_CompanionDump_n16(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_EmotionEntry>): Array<EmotionEntry> {
-    return value.map((x)=>from_candid_EmotionEntry_n17(_uploadFile, _downloadFile, x));
+function from_candid_vec_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Confession>): Array<Confession> {
+    return value.map((x)=>from_candid_Confession_n20(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_ApologyEntry>): Array<ApologyEntry> {
-    return value.map((x)=>from_candid_ApologyEntry_n4(_uploadFile, _downloadFile, x));
+function from_candid_vec_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_EmotionEntry>): Array<EmotionEntry> {
+    return value.map((x)=>from_candid_EmotionEntry_n23(_uploadFile, _downloadFile, x));
 }
-function from_candid_vec_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_ApologySchedule>): Array<ApologySchedule> {
-    return value.map((x)=>from_candid_ApologySchedule_n24(_uploadFile, _downloadFile, x));
+function from_candid_vec_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_FutureLetterDelivery>): Array<FutureLetterDelivery> {
+    return value.map((x)=>from_candid_FutureLetterDelivery_n29(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_LoveLetter>): Array<LoveLetter> {
+    return value.map((x)=>from_candid_LoveLetter_n33(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_ApologyEntry>): Array<ApologyEntry> {
+    return value.map((x)=>from_candid_ApologyEntry_n7(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_ApologySchedule>): Array<ApologySchedule> {
+    return value.map((x)=>from_candid_ApologySchedule_n37(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n45(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_SignificanceSignal>): Array<SignificanceSignal> {
+    return value.map((x)=>from_candid_SignificanceSignal_n46(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n49(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_SurfaceDelivery>): Array<SurfaceDelivery> {
+    return value.map((x)=>from_candid_SurfaceDelivery_n50(_uploadFile, _downloadFile, x));
 }
 function to_candid_UserRole_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
     return to_candid_variant_n2(_uploadFile, _downloadFile, value);
 }
-function to_candid_opt_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: string | null): [] | [string] {
+function to_candid_opt_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Principal | null): [] | [Principal] {
     return value === null ? candid_none() : candid_some(value);
 }
-function to_candid_opt_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: bigint | null): [] | [bigint] {
+function to_candid_opt_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: bigint | null): [] | [bigint] {
     return value === null ? candid_none() : candid_some(value);
 }
-function to_candid_opt_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Principal | null): [] | [Principal] {
+function to_candid_opt_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: string | null): [] | [string] {
+    return value === null ? candid_none() : candid_some(value);
+}
+function to_candid_opt_n54(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: bigint | null): [] | [bigint] {
     return value === null ? candid_none() : candid_some(value);
 }
 function to_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): {

@@ -121,7 +121,6 @@ actor {
   };
 
   // ────── Apology System Types ────────────────
-
   type ApologyEntry = {
     id : Text;
     senderUserId : Principal;
@@ -200,7 +199,6 @@ actor {
 
 
   // ────── Love Letter System Types ────────────────
-
   type LoveLetter = {
     id : Text;
     senderUserId : Principal;
@@ -254,9 +252,7 @@ actor {
     deliveredAt : ?Int;
   };
 
-
   // ────── Quick Release System Types ────────────────
-
   type QuickReleaseSession = {
     id : Text;
     userId : Principal;
@@ -281,6 +277,66 @@ actor {
     lastActivatedAt : ?Int;
   };
 
+  // ────── Significant Moments System Types ─────────────
+  public type SignificanceSignal = {
+    id : Text;
+    userId : Principal;
+    signalType : Text;
+    signalIntensity : Float; // Subjective signal importance 0.0 - 100.0
+    rawEmotionType : Text;
+    rawEmotionIntensity : Nat; // 1-10 scale
+    contextSnapshot : Text; // Encrypted JSON
+    significanceScore : Float; // Default 0, Ability to boost to 1.0+ and push to recommendations
+    usedInSurface : Bool;
+    surfaceTypeUsed : ?Text; //
+    createdAt : Time.Time;
+    eligibleForReturnAfter : Time.Time; // Default 3 days, can boost for eligibility
+    returnedAt : ?Time.Time; // When surfaced to user
+  };
+
+  type SurfaceDelivery = {
+    id : Text;
+    userId : Principal;
+    signalId : Text;
+    surfaceType : Text;
+    deliveryStatus : Text; // SCHEDULED | DELIVERED | EXPIRED | DISMISSED
+    scheduledForSessionAfter : Time.Time;
+    deliveredAt : ?Time.Time;
+    dismissed : Bool;
+    createdAt : Time.Time;
+  };
+
+  type FutureLetterDelivery = {
+    id : Text;
+    userId : Principal;
+    letterId : Text;
+    writtenAt : Time.Time;
+    deliveryTriggerJson : Text;
+    deliveryStatus : Text; // PENDING | DELIVERED | EXPIRED
+    deliveredAt : ?Time.Time;
+    overrideDate : Time.Time;
+  };
+
+  type SignificantMomentsSettings = {
+    userId : Principal;
+    enabled : Bool;
+    whisperEnabled : Bool;
+    memoryMirrorEnabled : Bool;
+    returnLetterEnabled : Bool;
+    becomingMomentEnabled : Bool;
+    milestoneHoldEnabled : Bool;
+    peakSealEnabled : Bool;
+    frequency : Text; // RARELY|OCCASIONALLY|OFTEN
+    createdAt : Time.Time;
+    updatedAt : Time.Time;
+  };
+
+  // Persistent evidences
+  let signals = Map.empty<Principal, List.List<SignificanceSignal>>();
+  let surfaceDeliveries = Map.empty<Principal, List.List<SurfaceDelivery>>();
+  let futureLetterDeliveries = Map.empty<Principal, List.List<FutureLetterDelivery>>();
+  let momentsSettings = Map.empty<Principal, SignificantMomentsSettings>();
+
   // Internal storage using persistent Map
   let apologyEntries = Map.empty<Principal, List.List<ApologyEntry>>();
   let apologyReflections = Map.empty<Principal, List.List<ApologyReceiverReflection>>();
@@ -304,6 +360,293 @@ actor {
   let emotionEntries = Map.empty<Principal, List.List<EmotionEntry>>();
   let emotionStreakRecords = Map.empty<Principal, List.List<EmotionStreakRecord>>();
   let veilVoiceSettings = Map.empty<Principal, VeilVoiceSettings>();
+
+  // Significant Moments System ===
+
+  public shared ({ caller }) func recordSignificanceSignal(signalType : Text, signalIntensity : Float, rawEmotionType : Text, rawEmotionIntensity : Nat, contextSnapshot : Text, eligibleForReturnAfterDays : Nat) : async Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can record signals");
+    };
+    let id = "signal_" # Time.now().toText();
+    let signal : SignificanceSignal = {
+      id;
+      userId = caller;
+      signalType;
+      signalIntensity;
+      rawEmotionType;
+      rawEmotionIntensity;
+      contextSnapshot;
+      significanceScore = 0.0;
+      usedInSurface = false;
+      surfaceTypeUsed = null;
+      createdAt = Time.now();
+      eligibleForReturnAfter = Time.now() + eligibleForReturnAfterDays * 24 * 60 * 60 * 1_000_000_000;
+      returnedAt = null;
+    };
+
+    let existing = switch (signals.get(caller)) {
+      case (null) { List.empty<SignificanceSignal>() };
+      case (?list) { list };
+    };
+    existing.add(signal);
+    signals.add(caller, existing);
+    id;
+  };
+
+  func getSignalsForUser(userId : Principal) : List.List<SignificanceSignal> {
+    switch (signals.get(userId)) {
+      case (null) { List.empty<SignificanceSignal>() };
+      case (?list) { list };
+    };
+  };
+
+  public query ({ caller }) func getSignificanceSignals() : async [SignificanceSignal] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view signals");
+    };
+    getSignalsForUser(caller).toArray();
+  };
+
+  public shared ({ caller }) func updateSignificanceScore(id : Text, score : Float) : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update signals");
+    };
+    let existing = getSignalsForUser(caller);
+    let found = existing.find(func(s) { s.id == id });
+    switch (found) {
+      case (null) { Runtime.trap("Signal not found") };
+      case (?signal) {
+        if (signal.userId != caller) {
+          Runtime.trap("Unauthorized: Only the creator can update the score");
+        };
+        let updated = existing.map<SignificanceSignal, SignificanceSignal>(
+          func(s) {
+            if (s.id == id) { { s with significanceScore = score } } else { s };
+          }
+        );
+        signals.add(caller, updated);
+        true;
+      };
+    };
+  };
+
+  public shared ({ caller }) func recordSurfaceDelivery(signalId : Text, surfaceType : Text, scheduledForSessionAfter : Time.Time) : async Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can record surface deliveries");
+    };
+    let id = "surface_" # Time.now().toText();
+    let delivery : SurfaceDelivery = {
+      id;
+      userId = caller;
+      signalId;
+      surfaceType;
+      deliveryStatus = "SCHEDULED";
+      scheduledForSessionAfter;
+      deliveredAt = null;
+      dismissed = false;
+      createdAt = Time.now();
+    };
+
+    let existing = switch (surfaceDeliveries.get(caller)) {
+      case (null) { List.empty<SurfaceDelivery>() };
+      case (?list) { list };
+    };
+    existing.add(delivery);
+    surfaceDeliveries.add(caller, existing);
+    id;
+  };
+
+  public query ({ caller }) func getSurfaceDeliveries() : async [SurfaceDelivery] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view surface deliveries");
+    };
+    let existing = switch (surfaceDeliveries.get(caller)) {
+      case (null) { List.empty<SurfaceDelivery>() };
+      case (?list) { list };
+    };
+    existing.toArray();
+  };
+
+  public shared ({ caller }) func markSurfaceDelivered(id : Text, surfaceType : Text) : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can mark surface deliveries");
+    };
+    let userDeliveries = switch (surfaceDeliveries.get(caller)) {
+      case (null) { Runtime.trap("Delivery not found") };
+      case (?deliveries) { deliveries };
+    };
+    let found = userDeliveries.find(func(d) { d.id == id });
+    switch (found) {
+      case (null) { Runtime.trap("Delivery not found") };
+      case (?delivery) {
+        if (delivery.userId != caller) {
+          Runtime.trap("Unauthorized: Only the creator can mark the delivery");
+        };
+        let updated = userDeliveries.map<SurfaceDelivery, SurfaceDelivery>(
+          func(d) {
+            if (d.id == id) {
+              { d with deliveryStatus = "DELIVERED"; deliveredAt = ?Time.now() };
+            } else { d };
+          }
+        );
+        surfaceDeliveries.add(caller, updated);
+
+        switch (signals.get(caller)) {
+          case (null) {};
+          case (?existingSignals) {
+            let updatedSignals = existingSignals.map<SignificanceSignal, SignificanceSignal>(
+              func(s) {
+                if (s.id == delivery.signalId) {
+                  { s with usedInSurface = true; surfaceTypeUsed = ?surfaceType; returnedAt = ?Time.now() };
+                } else { s };
+              }
+            );
+            signals.add(caller, updatedSignals);
+          };
+        };
+        true;
+      };
+    };
+  };
+
+  public shared ({ caller }) func dismissSurfaceDelivery(id : Text) : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can dismiss surface deliveries");
+    };
+    let deliveries = switch (surfaceDeliveries.get(caller)) {
+      case (null) { Runtime.trap("Delivery not found") };
+      case (?d) { d };
+    };
+    let found = deliveries.find(func(d) { d.id == id });
+    switch (found) {
+      case (null) { Runtime.trap("Delivery not found") };
+      case (?delivery) {
+        if (delivery.userId != caller) {
+          Runtime.trap("Unauthorized: Only the creator can dismiss the delivery");
+        };
+        let updated = deliveries.map<SurfaceDelivery, SurfaceDelivery>(
+          func(d) {
+            if (d.id == id) { { d with dismissed = true } } else { d };
+          }
+        );
+        surfaceDeliveries.add(caller, updated);
+        true;
+      };
+    };
+  };
+
+  public shared ({ caller }) func saveFutureLetterDelivery(letterId : Text, deliveryTriggerJson : Text, overrideDays : Nat) : async Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can save future letter deliveries");
+    };
+    let id = "fd_" # Time.now().toText();
+    let delivery : FutureLetterDelivery = {
+      id;
+      userId = caller;
+      letterId;
+      deliveryTriggerJson;
+      deliveryStatus = "PENDING";
+      deliveredAt = null;
+      writtenAt = Time.now();
+      overrideDate = Time.now() + (overrideDays * 24 * 60 * 60 * 1_000_000_000);
+    };
+
+    let existing = switch (futureLetterDeliveries.get(caller)) {
+      case (null) { List.empty<FutureLetterDelivery>() };
+      case (?d) { d };
+    };
+    existing.add(delivery);
+    futureLetterDeliveries.add(caller, existing);
+    id;
+  };
+
+  public query ({ caller }) func getFutureLetterDeliveries() : async [FutureLetterDelivery] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view future letter deliveries");
+    };
+    let deliveries = switch (futureLetterDeliveries.get(caller)) {
+      case (null) { List.empty<FutureLetterDelivery>() };
+      case (?d) { d };
+    };
+    deliveries.toArray();
+  };
+
+  public shared ({ caller }) func markFutureLetterDelivered(id : Text) : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can mark future letter deliveries");
+    };
+    let deliveries = switch (futureLetterDeliveries.get(caller)) {
+      case (null) { Runtime.trap("Future letter delivery not found") };
+      case (?d) { d };
+    };
+    let found = deliveries.find(func(d) { d.id == id });
+    switch (found) {
+      case (null) { Runtime.trap("Future letter delivery not found") };
+      case (?delivery) {
+        if (delivery.userId != caller) {
+          Runtime.trap("Unauthorized: Only the creator can mark the future letter delivery");
+        };
+        let updated = deliveries.map<FutureLetterDelivery, FutureLetterDelivery>(
+          func(d) {
+            if (d.id == id) { { d with deliveryStatus = "DELIVERED"; deliveredAt = ?Time.now() } } else { d };
+          }
+        );
+        futureLetterDeliveries.add(caller, updated);
+        true;
+      };
+    };
+  };
+
+  public query ({ caller }) func getSignificantMomentsSettings() : async ?SignificantMomentsSettings {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can view settings");
+    };
+    momentsSettings.get(caller);
+  };
+
+  public shared ({ caller }) func saveSignificantMomentsSettings(
+    enabled : Bool,
+    whisperEnabled : Bool,
+    memoryMirrorEnabled : Bool,
+    returnLetterEnabled : Bool,
+    becomingMomentEnabled : Bool,
+    milestoneHoldEnabled : Bool,
+    peakSealEnabled : Bool,
+    frequency : Text,
+  ) : async () {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can update settings");
+    };
+    let createdAt = switch (momentsSettings.get(caller)) {
+      case (null) { Time.now() };
+      case (?settings) { settings.createdAt };
+    };
+    let settings : SignificantMomentsSettings = {
+      userId = caller;
+      enabled;
+      whisperEnabled;
+      memoryMirrorEnabled;
+      returnLetterEnabled;
+      becomingMomentEnabled;
+      milestoneHoldEnabled;
+      peakSealEnabled;
+      frequency;
+      createdAt;
+      updatedAt = Time.now();
+    };
+    momentsSettings.add(caller, settings);
+  };
+
+  public shared ({ caller }) func deleteAllMySignificanceData() : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can delete their significance data");
+    };
+    signals.remove(caller);
+    surfaceDeliveries.remove(caller);
+    futureLetterDeliveries.remove(caller);
+    momentsSettings.remove(caller);
+    true;
+  };
 
   // Apology System Functions
 
@@ -607,7 +950,7 @@ actor {
             Runtime.trap("Apology has no recipient");
           };
         };
-        
+
         let senderId = apology.senderUserId;
         let existingEntries = switch (apologyEntries.get(senderId)) {
           case (null) { List.empty<ApologyEntry>() };
@@ -644,7 +987,7 @@ actor {
             if (caller != recipientId) {
               Runtime.trap("Unauthorized: Only the recipient can reflect on this apology");
             };
-            
+
             let id = "reflection_" # Time.now().toText();
             let newReflection : ApologyReceiverReflection = {
               id;
@@ -737,11 +1080,11 @@ actor {
           case (?recipientId) { recipientId == caller };
           case (null) { false };
         };
-        
+
         if (not (isSender or isRecipient)) {
           Runtime.trap("Unauthorized: You can only view apologies you sent or received");
         };
-        
+
         ?apology;
       };
     };

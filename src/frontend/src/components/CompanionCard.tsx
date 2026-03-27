@@ -4,6 +4,12 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useVeilVoice } from "../contexts/VeilVoiceContext";
 import { useActor } from "../hooks/useActor";
+import {
+  collectSignal,
+  getPendingDelivery,
+  getState,
+} from "../lib/significantMomentsEngine";
+import { SignificanceWhisper } from "./SignificanceWhisper";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -179,6 +185,12 @@ export function CompanionCard({
 
   // ── Card state ──
   const [cardState, setCardState] = useState<CardState>("DEFAULT");
+  const [whisperDelivery, setWhisperDelivery] = useState<
+    import("../lib/significantMomentsEngine").ScheduledDelivery | null
+  >(null);
+  const [whisperSignal, setWhisperSignal] = useState<
+    import("../lib/significantMomentsEngine").StoredSignal | null
+  >(null);
   const [activeSubState, setActiveSubState] = useState<ActiveSubState>("entry");
   const hasInitialized = useRef(false);
 
@@ -262,8 +274,35 @@ export function CompanionCard({
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["todaysDump"] });
+      // Signal collection: first ever dump
+      try {
+        const smState = getState();
+        const isFirstEver =
+          smState.signals.filter(
+            (s) => s.signalType === "SIGNAL_FIRST_COMPLETE_DUMP",
+          ).length === 0;
+        if (isFirstEver) {
+          collectSignal("SIGNAL_FIRST_COMPLETE_DUMP", "stressed", 7, {
+            firstEver: true,
+          });
+        }
+      } catch {}
     },
   });
+
+  // ── Significant Moments: check for Whisper on RELEASED ──
+  useEffect(() => {
+    if (cardState !== "RELEASED") return;
+    try {
+      const pending = getPendingDelivery({
+        surfaceTypeFilter: "SIGNIFICANCE_WHISPER",
+      });
+      if (pending) {
+        setWhisperDelivery(pending.delivery);
+        setWhisperSignal(pending.signal);
+      }
+    } catch {}
+  }, [cardState]);
 
   // ── Auto-transition RELEASED → RESTING ──
   useEffect(() => {
@@ -674,6 +713,17 @@ export function CompanionCard({
                 >
                   Express this visually →
                 </motion.button>
+              )}
+              {/* Significance Whisper */}
+              {whisperDelivery && whisperSignal && (
+                <SignificanceWhisper
+                  delivery={whisperDelivery}
+                  signal={whisperSignal}
+                  onShown={() => {
+                    setWhisperDelivery(null);
+                    setWhisperSignal(null);
+                  }}
+                />
               )}
             </div>
           </motion.div>

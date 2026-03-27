@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, BookHeart, Loader2 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import type React from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { JournalEntry, UserProfile } from "./backend";
 import { ApologyCreationFlow } from "./components/ApologyCreationFlow";
@@ -56,6 +56,11 @@ import {
   useRetentionState,
 } from "./lib/retentionState";
 import type { RetentionUserState } from "./lib/retentionState";
+import {
+  getState,
+  incrementSessionCount,
+  runSignificanceEngine,
+} from "./lib/significantMomentsEngine";
 import { hasUsedVisualCanvas } from "./lib/visualExpressionState";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -688,11 +693,94 @@ function WriteTab({
 // ─── Nav ──────────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS: { key: Tab; icon: React.ReactElement; label: string }[] = [
-  { key: "home", icon: <span className="text-xl">🏠</span>, label: "Home" },
+  {
+    key: "home",
+    icon: (
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        role="img"
+        aria-label="Home"
+      >
+        <ellipse cx="12" cy="4.5" rx="2" ry="2.5" />
+        <path d="M12 7 C10 9.5 8.5 11 8 13" />
+        <path d="M12 7 C14 9.5 15.5 11 16 13" />
+        <path d="M8 13 C6.5 14.5 5 15.5 4 16 C5 16.5 7 17 9 16.5 C10 16.2 11 15.5 12 15.5 C13 15.5 14 16.2 15 16.5 C17 17 19 16.5 20 16 C19 15.5 17.5 14.5 16 13" />
+        <path d="M10 14.5 C10.5 13.5 11.5 13 12 13.5 C12.5 14 11.5 14.8 12 15.5" />
+      </svg>
+    ),
+    label: "Home",
+  },
   { key: "write", icon: <span className="text-xl">✍️</span>, label: "Write" },
   {
     key: "journal",
-    icon: <span className="text-xl">📖</span>,
+    icon: (
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        role="img"
+        aria-label="My Journal"
+      >
+        {/* Open book - left page */}
+        <path d="M12 19 C12 19 6 17.5 3 18.5 L3 7 C6 6 12 7.5 12 7.5" />
+        {/* Open book - right page */}
+        <path d="M12 19 C12 19 18 17.5 21 18.5 L21 7 C18 6 12 7.5 12 7.5" />
+        {/* Center spine */}
+        <line x1="12" y1="7.5" x2="12" y2="19" />
+        {/* Small flower stem at spine center */}
+        <line x1="12" y1="13" x2="12" y2="10" strokeWidth="1" />
+        {/* Yellow flower petals (left side) */}
+        <circle
+          cx="10.8"
+          cy="9.5"
+          r="0.7"
+          fill="currentColor"
+          strokeWidth="0"
+          opacity="0.85"
+        />
+        {/* Pink/purple flower petals (right side) */}
+        <circle
+          cx="13.2"
+          cy="9.2"
+          r="0.65"
+          fill="currentColor"
+          strokeWidth="0"
+          opacity="0.7"
+        />
+        {/* Tiny leaf on stem */}
+        <path d="M12 11.5 C11 11 10.5 10.5 11 10" strokeWidth="0.9" />
+        {/* Butterfly body */}
+        <ellipse
+          cx="17"
+          cy="5.5"
+          rx="0.5"
+          ry="1"
+          fill="currentColor"
+          strokeWidth="0"
+          opacity="0.6"
+        />
+        {/* Butterfly left wing */}
+        <path d="M17 5 C15.5 4 14.5 5 15.5 6.5" strokeWidth="1" opacity="0.7" />
+        {/* Butterfly right wing */}
+        <path
+          d="M17 5 C18.5 3.8 19.5 4.8 18.5 6"
+          strokeWidth="1"
+          opacity="0.7"
+        />
+      </svg>
+    ),
     label: "Journal",
   },
   {
@@ -784,6 +872,21 @@ function AppInner() {
     intensity: number;
   } | null>(null);
   const [showHardDayDelivery, setShowHardDayDelivery] = useState(false);
+  // Significant Moments: run engine on every session start
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    try {
+      const state = getState();
+      incrementSessionCount();
+      runSignificanceEngine({
+        carryingDays: 0,
+        emotionType: "neutral",
+        sessionNumber: state.sessionCount + 1,
+        isInCrisis: false,
+      });
+    } catch {}
+  }, []);
+
   const pendingDumpRef = useRef<{
     textContent: string | null;
     dumpType: "voice" | "text";

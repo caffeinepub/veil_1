@@ -3,8 +3,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { EmotionType } from "../lib/emotionDetection";
 import { ARC_FEEDBACK } from "../lib/emotionalFeedbackCopy";
+import { collectSignal } from "../lib/significantMomentsEngine";
 import type { EISettings } from "./EISettingsPanel";
 import { EmotionalFeedbackOverlay } from "./EmotionalFeedbackOverlay";
+import { PeakSeal } from "./PeakSeal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1526,11 +1528,32 @@ export function TransformationArcFlow({
             exit={{ opacity: 0 }}
             className="w-full h-full"
           >
-            <FinalScreen
-              aura={aura}
-              phasesCompleted={phasesCompleted}
-              onNext={() => setPhase("measurement")}
-            />
+            {phasesCompleted >= 4 ? (
+              <PeakSeal
+                emotionAuraColor={aura}
+                onComplete={() => {
+                  try {
+                    collectSignal(
+                      "SIGNAL_ARC_FULL_COMPLETION",
+                      emotionType,
+                      _intensity,
+                      {
+                        phasesCompleted: 4,
+                        firstArc: false,
+                        wellbeingDelta: 3,
+                      },
+                    );
+                  } catch {}
+                  setPhase("measurement");
+                }}
+              />
+            ) : (
+              <FinalScreen
+                aura={aura}
+                phasesCompleted={phasesCompleted}
+                onNext={() => setPhase("measurement")}
+              />
+            )}
           </motion.div>
         )}
 

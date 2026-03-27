@@ -46,14 +46,22 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { loadVolumes } from "../lib/journalExtensions";
 import type { JournalVolume } from "../lib/journalExtensions";
 import { buildCompassState } from "../lib/reflectionsEngine";
 import type { CompassDirection } from "../lib/reflectionsEngine";
 import { generateSignature } from "../lib/signatureGenerator";
+import {
+  collectSignal,
+  getPendingDelivery,
+  markDelivered,
+} from "../lib/significantMomentsEngine";
+import type { ScheduledDelivery } from "../lib/significantMomentsEngine";
 import { AURA_COLOR_MAP } from "../utils/auraColors";
+import { BecomingMoment } from "./BecomingMoment";
+import { SignificantMomentsSettings } from "./SignificantMomentsSettings";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const GOLD = "#E8C060";
@@ -1974,6 +1982,10 @@ function SettingsPanel({
                     onSettingsChange({ apologyVoiceVentDetection: v })
                   }
                 />
+                <p className="text-xs text-gray-400 mt-4 mb-2">
+                  Significant Moments
+                </p>
+                <SignificantMomentsSettings />
               </AccordionContent>
             </AccordionItem>
 
@@ -2656,6 +2668,9 @@ export function ProfileTab({
   const [timeline] = useState<TimelineEntry[]>(loadTimeline);
   const [showSettings, setShowSettings] = useState(false);
   const [showInnerCircle, setShowInnerCircle] = useState(false);
+  const [showBecomingMoment, setShowBecomingMoment] = useState(false);
+  const [becomingMomentDelivery, setBecomingMomentDelivery] =
+    useState<ScheduledDelivery | null>(null);
   const [timelineView, setTimelineView] = useState<
     "daily" | "weekly" | "monthly"
   >("weekly");
@@ -2663,6 +2678,19 @@ export function ProfileTab({
     new Set(),
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Significant Moments: check for Becoming Moment on Profile mount
+  useEffect(() => {
+    try {
+      const pending = getPendingDelivery({
+        surfaceTypeFilter: "BECOMING_MOMENT",
+      });
+      if (pending) {
+        setBecomingMomentDelivery(pending.delivery);
+        setShowBecomingMoment(true);
+      }
+    } catch {}
+  }, []);
 
   const [compassState] = useState(() => {
     try {
@@ -2772,6 +2800,23 @@ export function ProfileTab({
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: "#FAF7F2" }}>
+      {/* Becoming Moment overlay */}
+      {showBecomingMoment && (
+        <BecomingMoment
+          becomingLine={profile.becomingText}
+          userSignature={profile.displayName}
+          onComplete={(acknowledged) => {
+            setShowBecomingMoment(false);
+            if (becomingMomentDelivery)
+              markDelivered(becomingMomentDelivery.id);
+            if (acknowledged) {
+              try {
+                collectSignal("SIGNAL_BECOMING_ACKNOWLEDGED", "hopeful", 9, {});
+              } catch {}
+            }
+          }}
+        />
+      )}
       <input
         ref={fileInputRef}
         type="file"

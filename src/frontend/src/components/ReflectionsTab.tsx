@@ -26,9 +26,19 @@ import {
   saveLocalReflection,
   saveReflectionsSettings,
 } from "../lib/reflectionsEngine";
+import {
+  collectSignal,
+  getPendingDelivery,
+  markDismissed,
+} from "../lib/significantMomentsEngine";
+import type {
+  ScheduledDelivery,
+  StoredSignal,
+} from "../lib/significantMomentsEngine";
 import { getVisualEntries } from "../lib/visualExpressionState";
 import { AlgorithmInsightsPanel } from "./AlgorithmInsightsPanel";
 import { EmotionalCompass } from "./EmotionalCompass";
+import { MemoryMirror } from "./MemoryMirror";
 import { VisualStoryGallery } from "./VisualStoryGallery";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -248,6 +258,10 @@ export function ReflectionsTab() {
   const qc = useQueryClient();
 
   const [view, setView] = useState<View>("main");
+  const [memoryMirrorDelivery, setMemoryMirrorDelivery] =
+    useState<ScheduledDelivery | null>(null);
+  const [memoryMirrorSignal, setMemoryMirrorSignal] =
+    useState<StoredSignal | null>(null);
   const [activePrompt, setActivePrompt] = useState<ActivePrompt | null>(null);
   const [localReflections, setLocalReflections] = useState<StoredReflection[]>(
     [],
@@ -256,6 +270,20 @@ export function ReflectionsTab() {
     loadReflectionsSettings,
   );
   const [isFirstTime, setIsFirstTime] = useState(false);
+
+  // Significant Moments: check for Memory Mirror on main view
+  useEffect(() => {
+    if (view !== "main") return;
+    try {
+      const pending = getPendingDelivery({
+        surfaceTypeFilter: "MEMORY_MIRROR",
+      });
+      if (pending) {
+        setMemoryMirrorDelivery(pending.delivery);
+        setMemoryMirrorSignal(pending.signal);
+      }
+    } catch {}
+  }, [view]);
 
   // Writing
   const [writingText, setWritingText] = useState("");
@@ -1515,6 +1543,19 @@ export function ReflectionsTab() {
               >
                 {activePrompt.text}
               </p>
+              {/* Memory Mirror */}
+              {memoryMirrorDelivery && memoryMirrorSignal && (
+                <MemoryMirror
+                  delivery={memoryMirrorDelivery}
+                  signal={memoryMirrorSignal}
+                  onDismiss={() => {
+                    if (memoryMirrorDelivery)
+                      markDismissed(memoryMirrorDelivery.id);
+                    setMemoryMirrorDelivery(null);
+                    setMemoryMirrorSignal(null);
+                  }}
+                />
+              )}
               <div className="space-y-3 mb-5">
                 <button
                   data-ocid="reflections.write_button"

@@ -55,6 +55,13 @@ import {
   type SignatureResult,
   generateSignature,
 } from "../lib/signatureGenerator";
+import {
+  collectSignal,
+  getMilestoneShown,
+  getState,
+  markMilestoneShown,
+} from "../lib/significantMomentsEngine";
+import { MilestoneHold } from "./MilestoneHold";
 import SeasonalNavigator from "./SeasonalNavigator";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -2271,10 +2278,28 @@ export default function MyJournalTab() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [coverEntered, setCoverEntered] = useState(false);
+  const [milestoneHoldTier, setMilestoneHoldTier] = useState<
+    7 | 30 | 90 | 365 | null
+  >(null);
 
   const reduceMotion =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Significant Moments: check for Milestone Hold on mount
+  useEffect(() => {
+    try {
+      const smState = getState();
+      const milestones = [365, 90, 30, 7] as const;
+      const shown = getMilestoneShown();
+      for (const m of milestones) {
+        if (smState.sessionCount >= m && !shown[m]) {
+          setMilestoneHoldTier(m);
+          break;
+        }
+      }
+    } catch {}
+  }, []);
 
   // Load all journal data in parallel
   const { data: allData, isLoading } = useQuery<AllJournalData>({
@@ -2678,6 +2703,27 @@ export default function MyJournalTab() {
   // ── Journal Cover (default view) ─────────────────────────────────────────────
   return (
     <>
+      {/* Milestone Hold overlay */}
+      {milestoneHoldTier !== null && (
+        <MilestoneHold
+          milestone={milestoneHoldTier}
+          sessionCount={getState().sessionCount}
+          journalPageCount={allData?.journalEntries?.length ?? 12}
+          onComplete={(volumeName) => {
+            try {
+              markMilestoneShown(milestoneHoldTier);
+              if (volumeName && milestoneHoldTier === 365) {
+                // Store volume name in localStorage
+                const vKey = "veil-volume-names";
+                const existing = JSON.parse(localStorage.getItem(vKey) || "{}");
+                existing[new Date().getFullYear() - 1] = volumeName;
+                localStorage.setItem(vKey, JSON.stringify(existing));
+              }
+            } catch {}
+            setMilestoneHoldTier(null);
+          }}
+        />
+      )}
       <motion.div
         initial={
           coverEntered

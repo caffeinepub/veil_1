@@ -2,11 +2,17 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect } from "react";
 import { useState } from "react";
 import { useVeilVoice } from "../contexts/VeilVoiceContext";
+import { getPendingDelivery } from "../lib/significantMomentsEngine";
+import type {
+  ScheduledDelivery,
+  StoredSignal,
+} from "../lib/significantMomentsEngine";
 import { AURA_COLOR_MAP } from "../utils/auraColors";
 import {
   getAwarenessMessage,
   shouldShowCrisisResources,
 } from "../utils/streakAwarenessMessages";
+import { ReturnLetter } from "./ReturnLetter";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -28,6 +34,10 @@ export function CarryingThisCard({
   reduceMotion = false,
 }: CarryingThisCardProps) {
   const [showCrisisDetails, setShowCrisisDetails] = useState(false);
+  const [returnLetterDelivery, setReturnLetterDelivery] =
+    useState<ScheduledDelivery | null>(null);
+  const [returnLetterSignal, setReturnLetterSignal] =
+    useState<StoredSignal | null>(null);
 
   const { triggerMoment } = useVeilVoice();
   const message = getAwarenessMessage(emotionType, streakDays);
@@ -41,6 +51,20 @@ export function CarryingThisCard({
     }, 500);
     return () => clearTimeout(t);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (streakDays < 3) return;
+    try {
+      const pending = getPendingDelivery({
+        carryingDays: streakDays,
+        surfaceTypeFilter: "RETURN_LETTER",
+      });
+      if (pending) {
+        setReturnLetterDelivery(pending.delivery);
+        setReturnLetterSignal(pending.signal);
+      }
+    } catch {}
+  }, [streakDays]);
 
   if (!message) return null;
 
@@ -175,6 +199,22 @@ export function CarryingThisCard({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Return Letter — from a moment you already survived */}
+        {returnLetterDelivery && returnLetterSignal && streakDays >= 3 && (
+          <>
+            <div
+              style={{
+                borderBottom: "1px dashed rgba(122,158,126,0.12)",
+                margin: "8px 0",
+              }}
+            />
+            <ReturnLetter
+              delivery={returnLetterDelivery}
+              signal={returnLetterSignal}
+            />
+          </>
+        )}
 
         {/* Divider */}
         <hr className="mb-4 ml-9" style={{ borderColor: `${auraColor}30` }} />

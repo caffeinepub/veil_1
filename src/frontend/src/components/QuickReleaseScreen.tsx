@@ -102,9 +102,9 @@ export function QuickReleaseScreen({
           await actor.logQuickReleaseSession(
             "WEB",
             accessPoint,
-            hasContent ? ["VOICE"] : [null],
+            hasContent ? "VOICE" : null,
             hasContent,
-            [duration],
+            BigInt(duration),
             "HOME_SCREEN",
           );
         } catch {

@@ -77,6 +77,26 @@ export interface CompanionDump {
   'audioStored' : boolean,
   'textContent' : [] | [string],
 }
+export interface Confession {
+  'id' : string,
+  'apologyCreatedAfter' : boolean,
+  'witnessResponseDelivered' : boolean,
+  'content' : string,
+  'deletionRequested' : boolean,
+  'wordCount' : bigint,
+  'userId' : Principal,
+  'mode' : string,
+  'createdAt' : bigint,
+  'witnessOpened' : boolean,
+  'onThisDaySurfaced' : boolean,
+  'witnessResponse' : [] | [string],
+  'witnessUserId' : [] | [Principal],
+  'witnessNotified' : boolean,
+  'crisisResourcesShown' : boolean,
+  'crisisSignalDetected' : boolean,
+  'hadVoiceComponent' : boolean,
+  'apologyBridgeShown' : boolean,
+}
 export interface EmotionEntry {
   'id' : string,
   'emotionType' : string,
@@ -103,6 +123,16 @@ export interface EmotionStreakRecord {
   'crisisResourcesShown' : boolean,
   'lastAwarenessMilestone' : [] | [bigint],
 }
+export interface FutureLetterDelivery {
+  'id' : string,
+  'writtenAt' : Time,
+  'deliveredAt' : [] | [Time],
+  'deliveryTriggerJson' : string,
+  'userId' : Principal,
+  'deliveryStatus' : string,
+  'overrideDate' : Time,
+  'letterId' : string,
+}
 export interface JournalEntry {
   'id' : string,
   'title' : string,
@@ -110,16 +140,96 @@ export interface JournalEntry {
   'mood' : string,
   'timestamp' : Time,
 }
+export interface LoveLetter {
+  'id' : string,
+  'status' : string,
+  'editLevel' : string,
+  'nonVeilToken' : [] | [string],
+  'signature' : string,
+  'deliveredAt' : [] | [bigint],
+  'aiVersionUsed' : string,
+  'visualStyle' : string,
+  'feltAt' : [] | [bigint],
+  'wordCount' : bigint,
+  'journalEntryId' : [] | [string],
+  'createdAt' : bigint,
+  'recipientContact' : [] | [string],
+  'aiAssisted' : boolean,
+  'isAnonymous' : boolean,
+  'openingLine' : string,
+  'letterType' : string,
+  'deliveryMethod' : string,
+  'onThisDaySurfaced' : boolean,
+  'deliveryTime' : [] | [bigint],
+  'recipientUserId' : [] | [Principal],
+  'crisisSignalDetected' : boolean,
+  'closingLine' : string,
+  'bodyText' : string,
+  'visibility' : string,
+  'recipientType' : string,
+  'sharedWarmthTriggered' : boolean,
+  'senderUserId' : Principal,
+  'nonVeilTokenExpires' : [] | [bigint],
+  'openedAt' : [] | [bigint],
+}
+export interface QuickReleaseConfig {
+  'userId' : Principal,
+  'platform' : string,
+  'activationCount' : bigint,
+  'setupDate' : [] | [bigint],
+  'setupCompleted' : boolean,
+  'lastActivatedAt' : [] | [bigint],
+  'phrase' : string,
+}
 export interface Reflection {
   'id' : string,
   'response' : string,
   'timestamp' : Time,
   'prompt' : string,
 }
+export interface SignificanceSignal {
+  'id' : string,
+  'surfaceTypeUsed' : [] | [string],
+  'significanceScore' : number,
+  'eligibleForReturnAfter' : Time,
+  'userId' : Principal,
+  'usedInSurface' : boolean,
+  'rawEmotionIntensity' : bigint,
+  'createdAt' : Time,
+  'contextSnapshot' : string,
+  'signalIntensity' : number,
+  'rawEmotionType' : string,
+  'returnedAt' : [] | [Time],
+  'signalType' : string,
+}
+export interface SignificantMomentsSettings {
+  'returnLetterEnabled' : boolean,
+  'memoryMirrorEnabled' : boolean,
+  'becomingMomentEnabled' : boolean,
+  'userId' : Principal,
+  'createdAt' : Time,
+  'enabled' : boolean,
+  'updatedAt' : Time,
+  'milestoneHoldEnabled' : boolean,
+  'frequency' : string,
+  'whisperEnabled' : boolean,
+  'peakSealEnabled' : boolean,
+}
 export interface Stats {
   'totalEntries' : bigint,
   'moodFrequency' : Array<[string, bigint]>,
   'currentStreak' : bigint,
+}
+export interface SurfaceDelivery {
+  'id' : string,
+  'deliveredAt' : [] | [Time],
+  'surfaceType' : string,
+  'userId' : Principal,
+  'createdAt' : Time,
+  'deliveryStatus' : string,
+  'scheduledForSessionAfter' : Time,
+  'signalId' : string,
+  'dismissed' : boolean,
 }
 export type Time = bigint;
 export interface UserProfile { 'displayName' : string }
@@ -150,9 +260,39 @@ export interface _SERVICE {
     [string, string, string, boolean, boolean, string, string, boolean],
     string
   >,
+  'createConfession' : ActorMethod<
+    [string, string, bigint, boolean, [] | [Principal], boolean, boolean],
+    string
+  >,
+  'createLoveLetter' : ActorMethod<
+    [
+      string,
+      string,
+      string,
+      string,
+      string,
+      bigint,
+      string,
+      boolean,
+      boolean,
+      string,
+      string,
+      string,
+      [] | [bigint],
+      string,
+      [] | [string],
+      [] | [string],
+      [] | [bigint],
+      boolean,
+    ],
+    string
+  >,
   'deleteAllMyApologies' : ActorMethod<[], boolean>,
+  'deleteAllMySignificanceData' : ActorMethod<[], boolean>,
+  'deleteConfession' : ActorMethod<[string], boolean>,
   'deleteJournalEntry' : ActorMethod<[string], undefined>,
   'deleteUnsentApology' : ActorMethod<[string], boolean>,
+  'dismissSurfaceDelivery' : ActorMethod<[string], boolean>,
   'getAllApologySenderIds' : ActorMethod<[], Array<Principal>>,
   'getAllJournalEntries' : ActorMethod<[], Array<JournalEntry>>,
   'getAllReflections' : ActorMethod<[], Array<Reflection>>,
@@ -160,22 +300,43 @@ export interface _SERVICE {
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCompanionDumps' : ActorMethod<[], Array<CompanionDump>>,
+  'getConfessions' : ActorMethod<[], Array<Confession>>,
   'getEmotionEntries' : ActorMethod<[], Array<EmotionEntry>>,
   'getEmotionStreakRecord' : ActorMethod<[string], [] | [EmotionStreakRecord]>,
+  'getFutureLetterDeliveries' : ActorMethod<[], Array<FutureLetterDelivery>>,
   'getInnerCircle' : ActorMethod<[], Array<Principal>>,
+  'getLoveLettersBySender' : ActorMethod<[], Array<LoveLetter>>,
   'getMyApologies' : ActorMethod<[], Array<ApologyEntry>>,
   'getMyScheduledApologies' : ActorMethod<[], Array<ApologySchedule>>,
   'getMyUnsentApologies' : ActorMethod<[], Array<ApologyEntry>>,
+  'getQuickReleaseConfig' : ActorMethod<[string], [] | [QuickReleaseConfig]>,
   'getReceivedApologies' : ActorMethod<[], Array<ApologyEntry>>,
   'getReceiverReflection' : ActorMethod<
     [string],
     [] | [ApologyReceiverReflection]
   >,
+  'getSignificanceSignals' : ActorMethod<[], Array<SignificanceSignal>>,
+  'getSignificantMomentsSettings' : ActorMethod<
+    [],
+    [] | [SignificantMomentsSettings]
+  >,
   'getStats' : ActorMethod<[], Stats>,
+  'getSurfaceDeliveries' : ActorMethod<[], Array<SurfaceDelivery>>,
   'getTodaysDump' : ActorMethod<[], [] | [CompanionDump]>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getVeilVoiceSettings' : ActorMethod<[], [] | [VeilVoiceSettings]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'logQuickReleaseSession' : ActorMethod<
+    [string, string, [] | [string], boolean, [] | [bigint], string],
+    string
+  >,
+  'markFutureLetterDelivered' : ActorMethod<[string], boolean>,
+  'markSurfaceDelivered' : ActorMethod<[string, string], boolean>,
+  'recordSignificanceSignal' : ActorMethod<
+    [string, number, string, bigint, string, bigint],
+    string
+  >,
+  'recordSurfaceDelivery' : ActorMethod<[string, string, Time], string>,
   'rescheduleApology' : ActorMethod<[string, bigint], boolean>,
   'saveApologyAsUnsent' : ActorMethod<[string], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
@@ -205,23 +366,36 @@ export interface _SERVICE {
     [string, [] | [bigint], [] | [string], boolean],
     undefined
   >,
+  'saveFutureLetterDelivery' : ActorMethod<[string, string, bigint], string>,
+  'saveLoveLetterReaction' : ActorMethod<
+    [string, string, [] | [string]],
+    boolean
+  >,
+  'saveQuickReleaseConfig' : ActorMethod<[string, string, boolean], boolean>,
   'saveReceiverReflection' : ActorMethod<
     [string, string, [] | [string], string],
     boolean
+  >,
+  'saveSignificantMomentsSettings' : ActorMethod<
+    [boolean, boolean, boolean, boolean, boolean, boolean, boolean, string],
+    undefined
   >,
   'saveVeilVoiceSettings' : ActorMethod<
     [boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean],
     undefined
   >,
+  'saveWitnessResponse' : ActorMethod<[string, string], boolean>,
   'scheduleApology' : ActorMethod<
     [string, [] | [Principal], string, [] | [string], bigint],
     boolean
   >,
+  'scheduleLoveLetter' : ActorMethod<[string, bigint, string], boolean>,
   'sendApologyNow' : ActorMethod<
     [string, [] | [Principal], string, [] | [string]],
     boolean
   >,
   'updateApologyContent' : ActorMethod<[string, string, string], boolean>,
+  'updateSignificanceScore' : ActorMethod<[string, number], boolean>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];
