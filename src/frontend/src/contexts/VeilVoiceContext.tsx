@@ -220,9 +220,8 @@ export function VeilVoiceProvider({ children }: { children: React.ReactNode }) {
           script = getMoment4Script(options?.emotionType ?? "STRESSED");
         } else if (momentId === 5) {
           script = getMoment5Script(
+            "RELEASE",
             options?.emotionType ?? "STRESSED",
-            options?.streakDays ?? 3,
-            null,
           );
         } else {
           script = getNextScript(momentId as Exclude<MomentId, 4 | 5>);

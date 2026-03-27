@@ -1,4 +1,4 @@
-// ─── Journal Data Aggregation Layer ──────────────────────────────────────────
+// ─── Journal Data Aggregation Layer ─────────────────────────────────────────────
 // Converts raw backend data into JournalPage objects sorted chronologically.
 
 import type {
@@ -30,7 +30,10 @@ export type PageType =
   | "ONE_TRUE_THING"
   | "AGENCY_ANCHOR"
   | "MILESTONE_PAGE"
-  | "MONTHLY_LETTER";
+  | "MONTHLY_LETTER"
+  | "VOICE_JOURNAL"
+  | "TUCKED_LETTER"
+  | "DEDICATION";
 
 export interface JournalPage {
   id: string;
@@ -56,6 +59,12 @@ export interface JournalPage {
   season?: "SPRING" | "SUMMER" | "FALL" | "WINTER";
   seasonYear?: number;
   weekOfYear?: number;
+  // v1.2 extensions
+  voiceWaveformPoints?: number[];
+  voiceAudioDataUrl?: string;
+  voiceTitle?: string;
+  tuckedLetterRecipient?: string;
+  tuckedLetterCondition?: string;
 }
 
 export const EMOTION_AURA_COLORS: Record<string, string> = {
@@ -77,6 +86,8 @@ export const EMOTION_AURA_COLORS: Record<string, string> = {
   captured_joy_voice: "#F9E8A0",
   achievement: "#F5D080",
   journal_entry: "#E8E4DC",
+  voice_journal: "#D4E8C8",
+  tucked_letter: "#EAD8C0",
   default: "#E8E0D8",
 };
 
@@ -89,6 +100,9 @@ function getPageColor(emotionType: string, pageType: PageType): string {
   if (pageType === "MILESTONE_PAGE" || pageType === "MONTHLY_LETTER")
     return EMOTION_AURA_COLORS.achievement;
   if (pageType === "JOURNAL_ENTRY") return EMOTION_AURA_COLORS.journal_entry;
+  if (pageType === "VOICE_JOURNAL") return EMOTION_AURA_COLORS.voice_journal;
+  if (pageType === "TUCKED_LETTER") return EMOTION_AURA_COLORS.tucked_letter;
+  if (pageType === "DEDICATION") return "#F5EFE4";
   const key = emotionType?.toLowerCase();
   return EMOTION_AURA_COLORS[key] ?? EMOTION_AURA_COLORS.default;
 }
@@ -108,6 +122,9 @@ const PAGE_TYPE_META: Record<PageType, { label: string; emoji: string }> = {
   AGENCY_ANCHOR: { label: "What I Chose", emoji: "🎯" },
   MILESTONE_PAGE: { label: "Milestone", emoji: "✨" },
   MONTHLY_LETTER: { label: "Letter from Veil", emoji: "💙" },
+  VOICE_JOURNAL: { label: "Voice Entry", emoji: "🎤" },
+  TUCKED_LETTER: { label: "Letter for Later", emoji: "📧" },
+  DEDICATION: { label: "Dedication", emoji: "🌹" },
 };
 
 function formatDate(d: Date): string {
@@ -120,7 +137,6 @@ function formatDate(d: Date): string {
 }
 
 function bigintToDate(ts: bigint): Date {
-  // ICP timestamps are in nanoseconds
   const ms = Number(ts / 1_000_000n);
   return new Date(ms);
 }
@@ -142,7 +158,7 @@ export interface AllJournalData {
 export function buildJournalPages(data: AllJournalData): JournalPage[] {
   const raw: Omit<JournalPage, "pageNumber">[] = [];
 
-  // ── Journal Entries ──────────────────────────────────────────────────────
+  // ── Journal Entries ────────────────────────────────────────────────────────────────────
   for (const e of data.journalEntries) {
     const date = bigintToDate(e.timestamp);
     raw.push({
@@ -161,7 +177,7 @@ export function buildJournalPages(data: AllJournalData): JournalPage[] {
     });
   }
 
-  // ── Emotion Check-Ins ────────────────────────────────────────────────────
+  // ── Emotion Check-Ins ──────────────────────────────────────────────────────────────────────────
   for (const e of data.emotionEntries) {
     const date = bigintToDate(e.createdAt);
     const isCapturedJoy =
@@ -195,7 +211,7 @@ export function buildJournalPages(data: AllJournalData): JournalPage[] {
     });
   }
 
-  // ── Companion Dumps ──────────────────────────────────────────────────────
+  // ── Companion Dumps ──────────────────────────────────────────────────────────────────────────
   for (const d of data.companionDumps) {
     const date = bigintToDate(d.createdAt);
     let pageType: PageType = "COMPANION_DUMP_TEXT";
@@ -232,7 +248,7 @@ export function buildJournalPages(data: AllJournalData): JournalPage[] {
     });
   }
 
-  // ── Apologies ────────────────────────────────────────────────────────────
+  // ── Apologies ────────────────────────────────────────────────────────────────────────────────────────
   const apologyIds = new Set<string>();
   for (const a of [...data.apologies, ...data.unsentApologies]) {
     if (apologyIds.has(a.id)) continue;
@@ -254,7 +270,7 @@ export function buildJournalPages(data: AllJournalData): JournalPage[] {
     });
   }
 
-  // ── Confessions ──────────────────────────────────────────────────────────
+  // ── Confessions ──────────────────────────────────────────────────────────────────────────
   for (const c of data.confessions) {
     const date = bigintToDate(c.createdAt);
     raw.push({
@@ -273,7 +289,7 @@ export function buildJournalPages(data: AllJournalData): JournalPage[] {
     });
   }
 
-  // ── Local Storage: Captured Joy ──────────────────────────────────────────
+  // ── Local Storage: Captured Joy ──────────────────────────────────────────────────────────────────────
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
@@ -308,10 +324,10 @@ export function buildJournalPages(data: AllJournalData): JournalPage[] {
     /* ignore */
   }
 
-  // ── Sort oldest → newest ─────────────────────────────────────────────────
+  // ── Sort oldest → newest ──────────────────────────────────────────────────────────────────────────
   raw.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  // ── Assign page numbers ──────────────────────────────────────────────────
+  // ── Assign page numbers ──────────────────────────────────────────────────────────────────────────
   return raw.map((p, i) => ({ ...p, pageNumber: i + 1 }));
 }
 
@@ -407,7 +423,7 @@ export function checkMilestones(pages: JournalPage[]): MilestoneDef[] {
   return milestones;
 }
 
-// ─── Seasonal enrichment (re-exported from seasonalData) ──────────────────────
+// ─── Seasonal enrichment (re-exported from seasonalData) ──────────────────────────────────────────────────
 // Added for Version 1.1 — Seasonal Navigation Architecture
 
 type SeasonType = "SPRING" | "SUMMER" | "FALL" | "WINTER";
@@ -455,7 +471,6 @@ export function enrichPagesWithSeasonalData(
   return pages.map((p) => {
     const month = p.date.getMonth();
     const season = getSeasonForMonthLocal(month, hemisphere);
-    // For winter in Dec, assign to current year; Jan/Feb stays in current year
     const seasonYear = p.date.getFullYear();
     const weekOfYear = getISOWeekLocal(p.date);
     return { ...p, season, seasonYear, weekOfYear };

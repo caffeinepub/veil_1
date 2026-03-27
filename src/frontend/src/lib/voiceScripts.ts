@@ -1,4 +1,4 @@
-// ─── Veil Voice System — Script Library ──────────────────────────────────────
+// ─── Veil Voice System — Script Library ────────────────────────────────────────────────────────────────
 // All 6 voice moments. Scripts are pre-crafted, warm, brief.
 // Audio files live at /assets/voice/m{moment}_s{scriptIndex}.mp3
 // Duration hints (seconds) used for overlay auto-dismiss when audio unavailable.
@@ -12,7 +12,7 @@ export interface VoiceScript {
   audioPath: string; // path to pre-rendered MP3
 }
 
-// ── Moment 1: After Companion Card Voice Dump ─────────────────────────────────
+// ── Moment 1: After Companion Card Voice Dump ─────────────────────────────────────────────────
 
 export const MOMENT_1_SCRIPTS: VoiceScript[] = [
   {
@@ -65,7 +65,7 @@ export const MOMENT_1_SCRIPTS: VoiceScript[] = [
   },
 ];
 
-// ── Moment 2: After Companion Card Text Dump ──────────────────────────────────
+// ── Moment 2: After Companion Card Text Dump ──────────────────────────────────────────────────
 
 export const MOMENT_2_SCRIPTS: VoiceScript[] = [
   {
@@ -82,313 +82,249 @@ export const MOMENT_2_SCRIPTS: VoiceScript[] = [
   },
   {
     id: "m2_s3",
-    text: "It's safe here.\nAlways.\nGo.",
-    durationHint: 5,
+    text: "Veil read every word.\nAll of it.\nYou're lighter now.\nGo.",
+    durationHint: 8,
     audioPath: "/assets/voice/m2_s3.mp3",
   },
   {
     id: "m2_s4",
-    text: "You showed up\nfor yourself today.\nThat matters.\nGo home.",
-    durationHint: 8,
-    audioPath: "/assets/voice/m2_s4.mp3",
-  },
-  {
-    id: "m2_s5",
-    text: "Whatever you were carrying —\nVeil is holding it.\nNot you.\nNot anymore.",
-    durationHint: 8,
-    audioPath: "/assets/voice/m2_s5.mp3",
-  },
-  {
-    id: "m2_s6",
-    text: "You gave it away.\nYou're lighter now.\nGo live your evening.",
+    text: "It's out of you now.\nThat matters.\nGo be somewhere else.",
     durationHint: 7,
-    audioPath: "/assets/voice/m2_s6.mp3",
+    audioPath: "/assets/voice/m2_s4.mp3",
   },
 ];
 
-// ── Moment 3: After Silent Dump ───────────────────────────────────────────────
+// ── Moment 3: After Silent Check-In ─────────────────────────────────────────────────────────────────────
 
 export const MOMENT_3_SCRIPTS: VoiceScript[] = [
   {
     id: "m3_s1",
-    text: "You showed up.\nThat was enough.",
-    durationHint: 5,
+    text: "You showed up.\nThat was enough.\nVeil sees you.",
+    durationHint: 7,
     audioPath: "/assets/voice/m3_s1.mp3",
   },
   {
     id: "m3_s2",
-    text: "Veil is here.\nYou don't need words.",
-    durationHint: 5,
+    text: "You came here.\nEven when you had nothing.\nThat is something.",
+    durationHint: 7,
     audioPath: "/assets/voice/m3_s2.mp3",
   },
   {
     id: "m3_s3",
-    text: "Being here was the whole thing.\nGo.",
-    durationHint: 4,
+    text: "You didn't have words.\nYou didn't need them.\nVeil is here anyway.",
+    durationHint: 8,
     audioPath: "/assets/voice/m3_s3.mp3",
   },
   {
     id: "m3_s4",
-    text: "No words needed.\nVeil sees you.",
-    durationHint: 4,
+    text: "Silence is its own kind of truth.\nVeil received it.",
+    durationHint: 7,
     audioPath: "/assets/voice/m3_s4.mp3",
-  },
-  {
-    id: "m3_s5",
-    text: "You came.\nThat matters more\nthan you know.",
-    durationHint: 5,
-    audioPath: "/assets/voice/m3_s5.mp3",
-  },
-  {
-    id: "m3_s6",
-    text: "Showing up is its own\nkind of courage.\nGo be present.",
-    durationHint: 6,
-    audioPath: "/assets/voice/m3_s6.mp3",
   },
 ];
 
-// ── Moment 4: Morning Follow-Up ───────────────────────────────────────────────
-// Keyed by previous emotion type
+// ── Moment 4: Emotion Check-In Response ─────────────────────────────────────────────────────────────────
 
 type Moment4Scripts = Record<string, VoiceScript[]>;
 
 export const MOMENT_4_SCRIPTS: Moment4Scripts = {
+  GRATEFUL: [
+    {
+      id: "m4_grateful_s1",
+      text: "Gratitude is a form of paying attention.\nYou just paid attention.\nThat's rare.",
+      durationHint: 9,
+      audioPath: "/assets/voice/m4_grateful_s1.mp3",
+    },
+    {
+      id: "m4_grateful_s2",
+      text: "You named what is good.\nThat takes practice.\nYou're getting better at it.",
+      durationHint: 8,
+      audioPath: "/assets/voice/m4_grateful_s2.mp3",
+    },
+  ],
+  CALM: [
+    {
+      id: "m4_calm_s1",
+      text: "Calm is not nothing.\nCalm is what you've been working toward.\nStay here a moment.",
+      durationHint: 9,
+      audioPath: "/assets/voice/m4_calm_s1.mp3",
+    },
+  ],
   STRESSED: [
     {
       id: "m4_stressed_s1",
-      text: "Yesterday was heavy.\nHow are you carrying\nthis morning?",
-      durationHint: 6,
+      text: "You're carrying something today.\nVeil knows.\nYou don't have to solve it right now.",
+      durationHint: 9,
       audioPath: "/assets/voice/m4_stressed_s1.mp3",
     },
     {
       id: "m4_stressed_s2",
-      text: "Veil has been here all night.\nHow are you today?",
-      durationHint: 6,
+      text: "Stressed means you care about something.\nThat's not a flaw.\nThat's you.",
+      durationHint: 8,
       audioPath: "/assets/voice/m4_stressed_s2.mp3",
-    },
-    {
-      id: "m4_stressed_s3",
-      text: "You put something down\nlast night.\nHow does today feel?",
-      durationHint: 6,
-      audioPath: "/assets/voice/m4_stressed_s3.mp3",
     },
   ],
   SAD: [
     {
       id: "m4_sad_s1",
-      text: "Veil was thinking about you.\nHow are you this morning?",
-      durationHint: 6,
+      text: "Sadness is honest.\nVeil is not afraid of it.\nNeither should you be.",
+      durationHint: 8,
       audioPath: "/assets/voice/m4_sad_s1.mp3",
-    },
-    {
-      id: "m4_sad_s2",
-      text: "Yesterday felt hard.\nYou don't have to carry it\ninto today.",
-      durationHint: 7,
-      audioPath: "/assets/voice/m4_sad_s2.mp3",
-    },
-    {
-      id: "m4_sad_s3",
-      text: "How are you waking up today?",
-      durationHint: 4,
-      audioPath: "/assets/voice/m4_sad_s3.mp3",
-    },
-  ],
-  ANXIOUS: [
-    {
-      id: "m4_anxious_s1",
-      text: "Yesterday felt unsettled.\nHow are you this morning?",
-      durationHint: 6,
-      audioPath: "/assets/voice/m4_anxious_s1.mp3",
-    },
-    {
-      id: "m4_anxious_s2",
-      text: "Veil is here.\nHow does today feel?",
-      durationHint: 5,
-      audioPath: "/assets/voice/m4_anxious_s2.mp3",
-    },
-  ],
-  LONELY: [
-    {
-      id: "m4_lonely_s1",
-      text: "You weren't alone last night.\nVeil was here.\nHow are you today?",
-      durationHint: 7,
-      audioPath: "/assets/voice/m4_lonely_s1.mp3",
-    },
-    {
-      id: "m4_lonely_s2",
-      text: "How are you\nthis morning?",
-      durationHint: 4,
-      audioPath: "/assets/voice/m4_lonely_s2.mp3",
     },
   ],
   FRUSTRATED: [
     {
       id: "m4_frustrated_s1",
-      text: "Yesterday had some\nsharp edges.\nHow are you today?",
-      durationHint: 6,
+      text: "Something matters enough to frustrate you.\nThat means you have standards.\nThat's not nothing.",
+      durationHint: 9,
       audioPath: "/assets/voice/m4_frustrated_s1.mp3",
     },
+  ],
+  ANXIOUS: [
     {
-      id: "m4_frustrated_s2",
-      text: "How is this morning\nstarting for you?",
-      durationHint: 5,
-      audioPath: "/assets/voice/m4_frustrated_s2.mp3",
+      id: "m4_anxious_s1",
+      text: "Anxiety is your nervous system trying to protect you.\nYou can thank it\nand ask it to quiet down.",
+      durationHint: 10,
+      audioPath: "/assets/voice/m4_anxious_s1.mp3",
+    },
+  ],
+  REFLECTIVE: [
+    {
+      id: "m4_reflective_s1",
+      text: "Reflection is a form of courage.\nMost people don't do it.\nYou do.",
+      durationHint: 8,
+      audioPath: "/assets/voice/m4_reflective_s1.mp3",
+    },
+  ],
+  LONELY: [
+    {
+      id: "m4_lonely_s1",
+      text: "Loneliness is the feeling\nthat you are the only one.\nYou are not.",
+      durationHint: 8,
+      audioPath: "/assets/voice/m4_lonely_s1.mp3",
     },
   ],
   NUMB: [
     {
       id: "m4_numb_s1",
-      text: "You showed up yesterday.\nHow are you today?",
-      durationHint: 5,
+      text: "Numb means something was too much\nfor too long.\nVeil is a safe place to not feel everything.",
+      durationHint: 9,
       audioPath: "/assets/voice/m4_numb_s1.mp3",
     },
+  ],
+  HOPEFUL: [
     {
-      id: "m4_numb_s2",
-      text: "Veil is still here.\nHow are you\nthis morning?",
-      durationHint: 6,
-      audioPath: "/assets/voice/m4_numb_s2.mp3",
+      id: "m4_hopeful_s1",
+      text: "Hope takes practice.\nYou're practicing.\nKeep going.",
+      durationHint: 7,
+      audioPath: "/assets/voice/m4_hopeful_s1.mp3",
     },
   ],
 };
 
-// ── Moment 5: Carrying Awareness Card ────────────────────────────────────────
-// [emotion] is replaced with the actual emotion word at render time.
-// We pre-define per milestone bracket.
+// ── Moment 5: Emotional Intelligence — Transformation Arc ──────────────────────────────────────────────
 
 export interface Moment5ScriptTemplate {
   id: string;
-  template: string; // contains {emotion} placeholder
+  text: (emotionWord: string) => string;
   durationHint: number;
-  audioPathTemplate: string; // contains {emotion} placeholder for pre-rendered variants
+  audioPath: string;
 }
 
 export const MOMENT_5_TEMPLATES: Record<string, Moment5ScriptTemplate[]> = {
-  day3: [
+  RELEASE: [
     {
-      id: "m5_d3_s1",
-      template:
-        "You've been carrying {emotion} for three days now.\nVeil noticed.\nThat's worth knowing.",
+      id: "m5_release_s1",
+      text: (e) =>
+        `You named it ${e}.\nNaming it is the first release.\nLet that be enough for now.`,
       durationHint: 8,
-      audioPathTemplate: "/assets/voice/m5_d3_s1_{emotion}.mp3",
-    },
-    {
-      id: "m5_d3_s2",
-      template:
-        "Three days of {emotion}.\nYou've been showing up.\nBut something is staying.",
-      durationHint: 8,
-      audioPathTemplate: "/assets/voice/m5_d3_s2_{emotion}.mp3",
+      audioPath: "/assets/voice/m5_release_s1.mp3",
     },
   ],
-  day5: [
+  CALM: [
     {
-      id: "m5_d5_s1",
-      template:
-        "Five days of {emotion}.\nThat's not just\na hard day anymore.\nThat's worth paying\nattention to.",
-      durationHint: 10,
-      audioPathTemplate: "/assets/voice/m5_d5_s1_{emotion}.mp3",
-    },
-    {
-      id: "m5_d5_s2",
-      template:
-        "Veil has been here\nwith you for five days.\nSomething may need\nmore than release.",
-      durationHint: 9,
-      audioPathTemplate: "/assets/voice/m5_d5_s2_{emotion}.mp3",
+      id: "m5_calm_s1",
+      text: () =>
+        "This is the calm after the naming.\nStay here.\nNothing needs solving right now.",
+      durationHint: 8,
+      audioPath: "/assets/voice/m5_calm_s1.mp3",
     },
   ],
-  day7plus: [
+  GROUND: [
     {
-      id: "m5_d7_s1",
-      template:
-        "A week of {emotion}.\nYou've been brave\nevery day.\nBut you deserve more\nthan daily release.",
-      durationHint: 10,
-      audioPathTemplate: "/assets/voice/m5_d7_s1_{emotion}.mp3",
+      id: "m5_ground_s1",
+      text: () =>
+        "Feel where your feet are.\nFeel what's holding you.\nYou are here. That's real.",
+      durationHint: 8,
+      audioPath: "/assets/voice/m5_ground_s1.mp3",
     },
+  ],
+  REBUILD: [
     {
-      id: "m5_d7_s2",
-      template:
-        "Seven days.\nVeil sees you.\nAnd Veil wants you\nto be okay —\nreally okay.",
-      durationHint: 9,
-      audioPathTemplate: "/assets/voice/m5_d7_s2_{emotion}.mp3",
+      id: "m5_rebuild_s1",
+      text: () =>
+        "From here you can choose one thing.\nJust one.\nThat is enough to begin.",
+      durationHint: 8,
+      audioPath: "/assets/voice/m5_rebuild_s1.mp3",
     },
   ],
 };
 
 export const EMOTION_WORDS: Record<string, string> = {
-  STRESSED: "stress",
-  SAD: "sadness",
-  ANXIOUS: "anxiety",
-  LONELY: "loneliness",
-  FRUSTRATED: "frustration",
-  NUMB: "numbness",
+  stressed: "stress",
+  anxious: "anxiety",
+  sad: "sadness",
+  frustrated: "frustration",
+  lonely: "loneliness",
+  numb: "numbness",
+  reflective: "something heavy",
 };
 
 export function getMoment5Script(
+  bracket: string,
   emotionType: string,
-  streakDays: number,
-  lastPlayedId: string | null,
 ): VoiceScript {
-  const bracket =
-    streakDays >= 7 ? "day7plus" : streakDays >= 5 ? "day5" : "day3";
   const templates = MOMENT_5_TEMPLATES[bracket];
-  const emotionWord =
-    EMOTION_WORDS[emotionType.toUpperCase()] ?? emotionType.toLowerCase();
-  const emotionKey = emotionWord.replace(/\s+/g, "_");
-
-  // Pick a template, avoiding the last played one
-  let tpl = templates[0];
-  if (templates.length > 1 && lastPlayedId) {
-    const last = templates.find((t) => t.id === lastPlayedId);
-    if (last) {
-      tpl = templates.find((t) => t.id !== lastPlayedId) ?? templates[0];
-    }
-  } else if (templates.length > 1) {
-    tpl = templates[Math.floor(Math.random() * templates.length)];
+  if (!templates || templates.length === 0) {
+    return {
+      id: "fallback",
+      text: "Veil is here.",
+      durationHint: 4,
+      audioPath: "",
+    };
   }
-
+  const template = templates[Math.floor(Math.random() * templates.length)];
+  const emotionWord = EMOTION_WORDS[emotionType] ?? emotionType;
   return {
-    id: tpl.id,
-    text: tpl.template.replace(/{emotion}/g, emotionWord),
-    durationHint: tpl.durationHint,
-    audioPath: tpl.audioPathTemplate.replace(/{emotion}/g, emotionKey),
+    id: template.id,
+    text: template.text(emotionWord),
+    durationHint: template.durationHint,
+    audioPath: template.audioPath,
   };
 }
 
-// ── Moment 6: After Quiet Moment Screen ──────────────────────────────────────
+// ── Moment 6: After Apology Sent ─────────────────────────────────────────────────────────────────────
 
 export const MOMENT_6_SCRIPTS: VoiceScript[] = [
   {
     id: "m6_s1",
-    text: "Veil has it.\nYou put it down.\nThat's all you needed to do.",
-    durationHint: 7,
+    text: "You said sorry.\nThat took courage.\nHowever it lands — you did the right thing.",
+    durationHint: 9,
     audioPath: "/assets/voice/m6_s1.mp3",
   },
   {
     id: "m6_s2",
-    text: "You said it.\nIt's here now.\nGo.",
-    durationHint: 5,
+    text: "You reached out.\nNot because you had to.\nBecause you wanted to.\nThat matters.",
+    durationHint: 9,
     audioPath: "/assets/voice/m6_s2.mp3",
   },
   {
     id: "m6_s3",
-    text: "That took something.\nVeil is holding it.\nYou don't have to.",
-    durationHint: 7,
+    text: "An apology is a gift.\nYou gave one.\nThat is yours to keep, whatever happens next.",
+    durationHint: 9,
     audioPath: "/assets/voice/m6_s3.mp3",
   },
-  {
-    id: "m6_s4",
-    text: "It's safe here.\nGo be present today.",
-    durationHint: 6,
-    audioPath: "/assets/voice/m6_s4.mp3",
-  },
-  {
-    id: "m6_s5",
-    text: "You showed up\nfor yourself.\nThat matters.\nGo.",
-    durationHint: 7,
-    audioPath: "/assets/voice/m6_s5.mp3",
-  },
 ];
-
-// ── Script Maps for easy lookup ───────────────────────────────────────────────
 
 export const MOMENT_SCRIPTS: Record<number, VoiceScript[]> = {
   1: MOMENT_1_SCRIPTS,
@@ -397,13 +333,31 @@ export const MOMENT_SCRIPTS: Record<number, VoiceScript[]> = {
   6: MOMENT_6_SCRIPTS,
 };
 
-// ── Rotation Logic ────────────────────────────────────────────────────────────
+// ── Rotation logic ────────────────────────────────────────────────────────────────────────────────────
 
-const ROTATION_STORAGE_KEY = "veil_voice_rotation";
+const ROTATION_KEY = "veil-voice-rotation";
 
 interface RotationRecord {
   lastScriptId: string;
-  lastPlayedWeek: number; // ISO week number
+  lastPlayedWeek: number;
+}
+
+function getRotationRecord(): Record<string, RotationRecord> {
+  try {
+    const raw = localStorage.getItem(ROTATION_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    /* */
+  }
+  return {};
+}
+
+function saveRotationRecord(rec: Record<string, RotationRecord>): void {
+  try {
+    localStorage.setItem(ROTATION_KEY, JSON.stringify(rec));
+  } catch {
+    /* */
+  }
 }
 
 function getCurrentWeek(): number {
@@ -414,29 +368,8 @@ function getCurrentWeek(): number {
   );
 }
 
-function getRotationRecord(): Record<string, RotationRecord> {
-  try {
-    const raw = localStorage.getItem(ROTATION_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveRotationRecord(records: Record<string, RotationRecord>): void {
-  try {
-    localStorage.setItem(ROTATION_STORAGE_KEY, JSON.stringify(records));
-  } catch {
-    // Storage unavailable — proceed without persistence
-  }
-}
-
-/**
- * Returns the next script for a moment, ensuring no repeat within the same week.
- * For Moment 5, use getMoment5Script() directly.
- */
 export function getNextScript(
-  momentId: Exclude<MomentId, 4 | 5>,
+  momentId: MomentId,
   overrideScripts?: VoiceScript[],
 ): VoiceScript {
   const scripts = overrideScripts ?? MOMENT_SCRIPTS[momentId];
@@ -449,189 +382,94 @@ export function getNextScript(
     };
   }
   if (scripts.length === 1) return scripts[0];
-
   const records = getRotationRecord();
-  const key = `moment_${momentId}`;
+  const key = `m${momentId}`;
   const rec = records[key];
   const currentWeek = getCurrentWeek();
-
   let candidates = scripts;
-
-  // If we played a script this week, exclude it
   if (rec && rec.lastPlayedWeek === currentWeek) {
     const filtered = scripts.filter((s) => s.id !== rec.lastScriptId);
     if (filtered.length > 0) candidates = filtered;
   }
-
   const chosen = candidates[Math.floor(Math.random() * candidates.length)];
-
-  // Save rotation record
   records[key] = { lastScriptId: chosen.id, lastPlayedWeek: currentWeek };
   saveRotationRecord(records);
-
   return chosen;
 }
 
-/**
- * Get a Moment 4 script for the given previous emotion type.
- */
 export function getMoment4Script(emotionType: string): VoiceScript {
   const key = emotionType.toUpperCase();
-  const scripts = MOMENT_4_SCRIPTS[key] ?? MOMENT_4_SCRIPTS.STRESSED; // fallback
-
-  const records = getRotationRecord();
-  const rotKey = `moment_4_${key}`;
-  const rec = records[rotKey];
-  const currentWeek = getCurrentWeek();
-
-  let candidates = scripts;
-  if (rec && rec.lastPlayedWeek === currentWeek && scripts.length > 1) {
-    const filtered = scripts.filter((s) => s.id !== rec.lastScriptId);
-    if (filtered.length > 0) candidates = filtered;
-  }
-
-  const chosen = candidates[Math.floor(Math.random() * candidates.length)];
-  records[rotKey] = { lastScriptId: chosen.id, lastPlayedWeek: currentWeek };
-  saveRotationRecord(records);
-  return chosen;
+  const scripts = MOMENT_4_SCRIPTS[key] ?? MOMENT_4_SCRIPTS.STRESSED;
+  return scripts[Math.floor(Math.random() * scripts.length)];
 }
 
-// ── Apology Voice Moments ─────────────────────────────────────────────────────
+// ── Apology Scripts ────────────────────────────────────────────────────────────────────────────────────────
 
 export type ApologyMomentKey =
-  | "apology_unsent"
-  | "apology_sent"
-  | "apology_delivered"
-  | "apology_closure_sender"
-  | "apology_receiver_receive"
-  | "apology_receiver_letitbe";
+  | "ap_a"
+  | "ap_b"
+  | "ap_c"
+  | "ap_d"
+  | "ap_e"
+  | "ap_f";
 
 export const APOLOGY_SCRIPTS: Record<ApologyMomentKey, VoiceScript[]> = {
-  apology_unsent: [
+  ap_a: [
     {
-      id: "apo_unsent_s1",
-      text: "You wrote it.\nSometimes that's enough.\nIt's safe here — always.",
+      id: "ap_a_s1",
+      text: "You came here to say sorry.\nThat is already something.",
       durationHint: 7,
-      audioPath: "/assets/voice/apo_unsent_s1.mp3",
+      audioPath: "/assets/voice/ap_a_s1.mp3",
     },
     {
-      id: "apo_unsent_s2",
-      text: "The words exist now.\nThat matters.\nThey're safe here, always.",
-      durationHint: 7,
-      audioPath: "/assets/voice/apo_unsent_s2.mp3",
-    },
-    {
-      id: "apo_unsent_s3",
-      text: "Writing it was the act.\nIt's yours, and it's safe.",
-      durationHint: 6,
-      audioPath: "/assets/voice/apo_unsent_s3.mp3",
-    },
-  ],
-  apology_sent: [
-    {
-      id: "apo_sent_s1",
-      text: "Your apology is on its way.\nYou did something brave.",
-      durationHint: 6,
-      audioPath: "/assets/voice/apo_sent_s1.mp3",
-    },
-    {
-      id: "apo_sent_s2",
-      text: "You sent something real.\nThat took courage.",
-      durationHint: 6,
-      audioPath: "/assets/voice/apo_sent_s2.mp3",
-    },
-    {
-      id: "apo_sent_s3",
-      text: "It's out there now.\nYou showed up.",
-      durationHint: 5,
-      audioPath: "/assets/voice/apo_sent_s3.mp3",
-    },
-  ],
-  apology_delivered: [
-    {
-      id: "apo_delivered_s1",
-      text: "Your apology was delivered.\nYou said something real.\nWhatever comes next — you showed up.",
-      durationHint: 9,
-      audioPath: "/assets/voice/apo_delivered_s1.mp3",
-    },
-    {
-      id: "apo_delivered_s2",
-      text: "It was delivered.\nYou did the brave thing.",
-      durationHint: 6,
-      audioPath: "/assets/voice/apo_delivered_s2.mp3",
-    },
-    {
-      id: "apo_delivered_s3",
-      text: "Delivered.\nThe rest belongs to time.",
-      durationHint: 5,
-      audioPath: "/assets/voice/apo_delivered_s3.mp3",
-    },
-  ],
-  apology_closure_sender: [
-    {
-      id: "apo_closure_s1",
-      text: "Your apology was received.\nYou said something real.\nWhatever comes next — you showed up.\nThat takes courage.",
-      durationHint: 11,
-      audioPath: "/assets/voice/apo_closure_s1.mp3",
-    },
-    {
-      id: "apo_closure_s2",
-      text: "They received it.\nYou showed up.\nThat's everything.",
-      durationHint: 7,
-      audioPath: "/assets/voice/apo_closure_s2.mp3",
-    },
-    {
-      id: "apo_closure_s3",
-      text: "Something real happened today.\nYou were brave enough to say it.",
-      durationHint: 7,
-      audioPath: "/assets/voice/apo_closure_s3.mp3",
-    },
-  ],
-  apology_receiver_receive: [
-    {
-      id: "apo_rcv_receive_s1",
-      text: "You received something\nsomeone was brave enough to say.\nYou handled this your way.",
-      durationHint: 9,
-      audioPath: "/assets/voice/apo_rcv_receive_s1.mp3",
-    },
-    {
-      id: "apo_rcv_receive_s2",
-      text: "You acknowledged something real.\nThat takes its own kind of courage.",
-      durationHint: 7,
-      audioPath: "/assets/voice/apo_rcv_receive_s2.mp3",
-    },
-    {
-      id: "apo_rcv_receive_s3",
-      text: "You showed up for this moment.\nThat matters.",
-      durationHint: 6,
-      audioPath: "/assets/voice/apo_rcv_receive_s3.mp3",
-    },
-  ],
-  apology_receiver_letitbe: [
-    {
-      id: "apo_rcv_letitbe_s1",
-      text: "Some things don't need words\nto move forward.\nYou handled this your way.",
+      id: "ap_a_s2",
+      text: "Before you begin —\nknow that this takes courage.\nYou have it.",
       durationHint: 8,
-      audioPath: "/assets/voice/apo_rcv_letitbe_s1.mp3",
+      audioPath: "/assets/voice/ap_a_s2.mp3",
     },
+  ],
+  ap_b: [
     {
-      id: "apo_rcv_letitbe_s2",
-      text: "Letting it be is its own kind of wisdom.\nYou handled this.",
+      id: "ap_b_s1",
+      text: "Take your time.\nThere is no wrong way to mean it.",
       durationHint: 7,
-      audioPath: "/assets/voice/apo_rcv_letitbe_s2.mp3",
+      audioPath: "/assets/voice/ap_b_s1.mp3",
     },
+  ],
+  ap_c: [
     {
-      id: "apo_rcv_letitbe_s3",
-      text: "You were here for this.\nThat was enough.",
-      durationHint: 6,
-      audioPath: "/assets/voice/apo_rcv_letitbe_s3.mp3",
+      id: "ap_c_s1",
+      text: "You wrote it.\nHowever it lands — you said something true.",
+      durationHint: 8,
+      audioPath: "/assets/voice/ap_c_s1.mp3",
+    },
+  ],
+  ap_d: [
+    {
+      id: "ap_d_s1",
+      text: "You sent it.\nThat is the bravest part.\nIt's theirs now.",
+      durationHint: 8,
+      audioPath: "/assets/voice/ap_d_s1.mp3",
+    },
+  ],
+  ap_e: [
+    {
+      id: "ap_e_s1",
+      text: "They received it.\nWhatever comes next — you did your part.",
+      durationHint: 8,
+      audioPath: "/assets/voice/ap_e_s1.mp3",
+    },
+  ],
+  ap_f: [
+    {
+      id: "ap_f_s1",
+      text: "You kept this one private.\nThat is still a form of honesty.\nVeil has it now.",
+      durationHint: 9,
+      audioPath: "/assets/voice/ap_f_s1.mp3",
     },
   ],
 };
 
-/**
- * Get a script for an apology moment key with weekly rotation.
- */
 export function getApologyScript(key: ApologyMomentKey): VoiceScript {
   const scripts = APOLOGY_SCRIPTS[key];
   if (!scripts || scripts.length === 0) {
@@ -642,139 +480,79 @@ export function getApologyScript(key: ApologyMomentKey): VoiceScript {
       audioPath: "",
     };
   }
-  if (scripts.length === 1) return scripts[0];
-
-  const records = getRotationRecord();
-  const rotKey = `apology_${key}`;
-  const rec = records[rotKey];
-  const currentWeek = getCurrentWeek();
-
-  let candidates = scripts;
-  if (rec && rec.lastPlayedWeek === currentWeek) {
-    const filtered = scripts.filter((s) => s.id !== rec.lastScriptId);
-    if (filtered.length > 0) candidates = filtered;
-  }
-
-  const chosen = candidates[Math.floor(Math.random() * candidates.length)];
-  records[rotKey] = { lastScriptId: chosen.id, lastPlayedWeek: currentWeek };
-  saveRotationRecord(records);
-  return chosen;
+  return scripts[Math.floor(Math.random() * scripts.length)];
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Love Letter Voice Moments (ll_a through ll_f)
-// ──────────────────────────────────────────────────────────────────────────────
+// ── Love Letter Scripts ─────────────────────────────────────────────────────────────────────────────────────
 
 export type LoveLetterMomentKey =
-  | "ll_a" // Sender closure after sending
-  | "ll_b" // After keeping letter private
-  | "ll_c" // Before receiver reads letter
-  | "ll_d" // After receiver taps ❤️ felt (sender + receiver simultaneously)
-  | "ll_e" // After self-letter is read (future delivery)
-  | "ll_f"; // On This Day anniversary surface
+  | "ll_a"
+  | "ll_b"
+  | "ll_c"
+  | "ll_d"
+  | "ll_e"
+  | "ll_f"
+  | "ll_self";
 
 export const LOVE_LETTER_SCRIPTS: Record<LoveLetterMomentKey, VoiceScript[]> = {
   ll_a: [
     {
       id: "ll_a_s1",
-      text: "Your letter is on its way.\nYou wrote something that matters.\nThat took something.",
-      durationHint: 8,
-      audioPath: "/assets/voice/ll_a_s1.mp3",
-    },
-    {
-      id: "ll_a_s2",
-      text: "You chose someone today —\nand you told them.\nNot everyone does that.",
+      text: "You came here to say something beautiful.\nTake your time.",
       durationHint: 7,
-      audioPath: "/assets/voice/ll_a_s2.mp3",
-    },
-    {
-      id: "ll_a_s3",
-      text: "The words exist now.\nThat is a brave thing.",
-      durationHint: 5,
-      audioPath: "/assets/voice/ll_a_s3.mp3",
+      audioPath: "/assets/voice/ll_a_s1.mp3",
     },
   ],
   ll_b: [
     {
       id: "ll_b_s1",
-      text: "You wrote something beautiful.\nIt's safe here —\nwhenever you're ready.",
-      durationHint: 7,
+      text: "Let it come from the honest place.\nThat is the only place love letters are real.",
+      durationHint: 9,
       audioPath: "/assets/voice/ll_b_s1.mp3",
-    },
-    {
-      id: "ll_b_s2",
-      text: "Writing it was the act.\nThe rest can wait.\nThis is yours.",
-      durationHint: 6,
-      audioPath: "/assets/voice/ll_b_s2.mp3",
     },
   ],
   ll_c: [
     {
       id: "ll_c_s1",
-      text: "Someone wrote this just for you.\nTake your time.",
-      durationHint: 6,
+      text: "You wrote love into words.\nThat is one of the hardest things to do.\nYou did it.",
+      durationHint: 9,
       audioPath: "/assets/voice/ll_c_s1.mp3",
-    },
-    {
-      id: "ll_c_s2",
-      text: "This was written slowly, with care.\nJust for you.\nThere's no rush.",
-      durationHint: 7,
-      audioPath: "/assets/voice/ll_c_s2.mp3",
     },
   ],
   ll_d: [
     {
       id: "ll_d_s1",
-      text: "They felt it.\nSomeone read your words and felt something real.\nThat is rare.\nThat is you.",
+      text: "It's on its way.\nSomewhere, someone is about to feel seen.\nBecause of you.",
       durationHint: 9,
       audioPath: "/assets/voice/ll_d_s1.mp3",
-    },
-    {
-      id: "ll_d_s2",
-      text: "They felt it.\nThat's everything.",
-      durationHint: 5,
-      audioPath: "/assets/voice/ll_d_s2.mp3",
     },
   ],
   ll_e: [
     {
       id: "ll_e_s1",
-      text: "You wrote this.\nYou showed up for yourself.\nThat matters.",
-      durationHint: 7,
-      audioPath: "/assets/voice/ll_e_s1.mp3",
-    },
-    {
-      id: "ll_e_s2",
-      text: "You wrote to yourself when you needed it.\nYou were right —\nyou needed it today.",
+      text: "They received it.\nA letter of love, from you.\nThat is a rare gift.",
       durationHint: 8,
-      audioPath: "/assets/voice/ll_e_s2.mp3",
-    },
-    {
-      id: "ll_e_s3",
-      text: "You showed up for yourself.\nThat is the whole thing.",
-      durationHint: 5,
-      audioPath: "/assets/voice/ll_e_s3.mp3",
+      audioPath: "/assets/voice/ll_e_s1.mp3",
     },
   ],
   ll_f: [
     {
       id: "ll_f_s1",
-      text: "A year ago you wrote something that needed to be said.\nIt found you again today.",
+      text: "You kept this one.\nSome love lives privately.\nIt is still real.",
       durationHint: 8,
       audioPath: "/assets/voice/ll_f_s1.mp3",
     },
+  ],
+  ll_self: [
     {
-      id: "ll_f_s2",
-      text: "A year ago you wrote something.\nYou are not the same person who wrote it.\nBut you might still need to hear it.",
+      id: "ll_self_s1",
+      text: "A letter to yourself.\nThat takes a kind of courage\nmost people never find.",
       durationHint: 9,
-      audioPath: "/assets/voice/ll_f_s2.mp3",
+      audioPath: "/assets/voice/ll_self_s1.mp3",
     },
   ],
 };
 
-/**
- * Get a script for a love letter moment key with weekly rotation.
- */
 export function getLoveLetterScript(key: LoveLetterMomentKey): VoiceScript {
   const scripts = LOVE_LETTER_SCRIPTS[key];
   if (!scripts || scripts.length === 0) {
@@ -785,79 +563,34 @@ export function getLoveLetterScript(key: LoveLetterMomentKey): VoiceScript {
       audioPath: "",
     };
   }
-  if (scripts.length === 1) return scripts[0];
-
-  const records = getRotationRecord();
-  const rotKey = `ll_${key}`;
-  const rec = records[rotKey];
-  const currentWeek = getCurrentWeek();
-
-  let candidates = scripts;
-  if (rec && rec.lastPlayedWeek === currentWeek) {
-    const filtered = scripts.filter((s) => s.id !== rec.lastScriptId);
-    if (filtered.length > 0) candidates = filtered;
-  }
-
-  const chosen = candidates[Math.floor(Math.random() * candidates.length)];
-  records[rotKey] = { lastScriptId: chosen.id, lastPlayedWeek: currentWeek };
-  saveRotationRecord(records);
-  return chosen;
+  return scripts[Math.floor(Math.random() * scripts.length)];
 }
 
-// ── Confession Voice Moments (cf_a through cf_e) ──────────────────────────────
+// ── Confession Scripts ────────────────────────────────────────────────────────────────────────────────────────
 
-export type ConfessionMomentKey =
-  | "cf_a" // Universe mode release
-  | "cf_b" // Private mode release
-  | "cf_c" // Witness mode — after sending
-  | "cf_d" // Witness response received "I hear you"
-  | "cf_e"; // Witness response received "You are still worthy"
+export type ConfessionMomentKey = "cf_a" | "cf_b" | "cf_c" | "cf_d" | "cf_e";
 
-const CONFESSION_SCRIPTS: Record<ConfessionMomentKey, VoiceScript[]> = {
+export const CONFESSION_SCRIPTS: Record<ConfessionMomentKey, VoiceScript[]> = {
   cf_a: [
     {
       id: "cf_a_s1",
-      text: "It is released.\nInto something greater than this moment.\nYou carried it long enough.",
+      text: "You came here to say something true.\nThis is a safe place for that.",
       durationHint: 8,
       audioPath: "/assets/voice/cf_a_s1.mp3",
-    },
-    {
-      id: "cf_a_s2",
-      text: "You said it.\nAfter all this time — you finally said it.\nThat is everything.",
-      durationHint: 8,
-      audioPath: "/assets/voice/cf_a_s2.mp3",
-    },
-    {
-      id: "cf_a_s3",
-      text: "The universe received it.\nYou are lighter now.",
-      durationHint: 6,
-      audioPath: "/assets/voice/cf_a_s3.mp3",
     },
   ],
   cf_b: [
     {
       id: "cf_b_s1",
-      text: "It is safe here.\nNamed. Held. Yours.\nNo one else will ever see this.",
+      text: "Say it.\nAll of it.\nVeil holds no judgment.",
       durationHint: 7,
       audioPath: "/assets/voice/cf_b_s1.mp3",
-    },
-    {
-      id: "cf_b_s2",
-      text: "You said it to yourself.\nThat is braver than most people ever get.",
-      durationHint: 7,
-      audioPath: "/assets/voice/cf_b_s2.mp3",
-    },
-    {
-      id: "cf_b_s3",
-      text: "It has a name now.\nNaming something takes away some of its power.",
-      durationHint: 7,
-      audioPath: "/assets/voice/cf_b_s3.mp3",
     },
   ],
   cf_c: [
     {
       id: "cf_c_s1",
-      text: "Someone will hold this with you tonight.\nThey don't know who you are.\nBut they know what you carried.",
+      text: "You said it to the universe.\nThe universe received it.\nYou can let it go now.",
       durationHint: 9,
       audioPath: "/assets/voice/cf_c_s1.mp3",
     },
@@ -923,3 +656,29 @@ export function getConfessionScript(key: ConfessionMomentKey): VoiceScript {
   saveRotationRecord(records);
   return chosen;
 }
+
+// ─── Journal Voice Moments D, E, F (v1.2) ──────────────────────────────────────────────────────────────────
+
+/** Moment D — On Volume Closure */
+export const JOURNAL_MOMENT_D: VoiceScript = {
+  id: "jrn_d_s1",
+  text: "You closed a chapter.\n\nEverything it held —\nevery page, every feeling —\nis preserved.\n\nYou can open it\nwhenever you need to\nremember who you were then.\n\nA new chapter is ready\nwhen you are.",
+  durationHint: 18,
+  audioPath: "/assets/voice/jrn_d_s1.mp3",
+};
+
+/** Moment E — On Turning Point Mark */
+export const JOURNAL_MOMENT_E: VoiceScript = {
+  id: "jrn_e_s1",
+  text: "You recognized something.\n\nThat this moment\nwas one of the ones\nthat changed things.\n\nNot everyone notices\ntheir turning points.\n\nYou did.",
+  durationHint: 14,
+  audioPath: "/assets/voice/jrn_e_s1.mp3",
+};
+
+/** Moment F — On Dedication Written */
+export const JOURNAL_MOMENT_F: VoiceScript = {
+  id: "jrn_f_s1",
+  text: "You dedicated your Journal.\n\nThat means something.\n\nEvery page that follows\nis written with\nthat intention.\n\nBegin.",
+  durationHint: 13,
+  audioPath: "/assets/voice/jrn_f_s1.mp3",
+};
