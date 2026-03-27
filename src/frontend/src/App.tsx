@@ -210,7 +210,7 @@ function HomeTab({
     .slice(0, 3);
 
   return (
-    <div className="animate-fade-in pb-6">
+    <div className="animate-fade-in pb-28">
       {/* Header gradient */}
       <div
         className="relative rounded-b-3xl px-6 pt-12 pb-8 mb-6"
@@ -474,7 +474,7 @@ function WriteTab({
   const canSave = body.trim().length > 0 && selectedMood !== "";
 
   return (
-    <div className="animate-fade-in pb-6">
+    <div className="animate-fade-in pb-28">
       <div
         className="rounded-b-3xl px-6 pt-12 pb-8 mb-6"
         style={{
@@ -1179,7 +1179,7 @@ function AppInner() {
         {/* Mobile shell */}
         <div className="max-w-[430px] mx-auto min-h-screen relative overflow-x-hidden">
           {/* Scrollable content area */}
-          <main className="overflow-y-auto" style={{ paddingBottom: "5.5rem" }}>
+          <main className="overflow-y-auto" style={{ paddingBottom: "7rem" }}>
             {activeTab === "home" && (
               <HomeTab
                 onNavigate={setActiveTab}

@@ -2602,7 +2602,11 @@ export default function MyJournalTab() {
   // ── Pages view ────────────────────────────────────────────────────────────
   if (view === "pages") {
     return (
-      <div className="fixed inset-0 z-40" data-ocid="journal.book.panel">
+      <div
+        className="fixed inset-0 z-40"
+        style={{ paddingBottom: "88px" }}
+        data-ocid="journal.book.panel"
+      >
         <JournalBook
           pages={allPages}
           currentIndex={currentPageIndex}
@@ -2709,7 +2713,7 @@ export default function MyJournalTab() {
         transition={{ duration: 0.6, ease: "easeOut" }}
         onAnimationComplete={() => setCoverEntered(true)}
         className="fixed inset-0 z-40 flex flex-col items-center justify-between overflow-hidden cursor-pointer"
-        style={{ background: "#2C1810" }}
+        style={{ background: "#2C1810", paddingBottom: "88px" }}
         onClick={openBook}
         data-ocid="journal.cover.panel"
       >
