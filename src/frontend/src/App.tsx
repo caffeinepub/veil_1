@@ -697,12 +697,12 @@ const NAV_ITEMS: { key: Tab; icon: React.ReactElement; label: string }[] = [
     key: "home",
     icon: (
       <svg
-        width="22"
-        height="22"
+        width="28"
+        height="28"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1.4"
         strokeLinecap="round"
         strokeLinejoin="round"
         role="img"
@@ -717,13 +717,55 @@ const NAV_ITEMS: { key: Tab; icon: React.ReactElement; label: string }[] = [
     ),
     label: "Home",
   },
-  { key: "write", icon: <span className="text-xl">✍️</span>, label: "Write" },
+  {
+    key: "write",
+    icon: (
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        role="img"
+        aria-label="Write"
+      >
+        {/* Ink bottle - small square vessel bottom-left */}
+        <rect x="2" y="16" width="6" height="5.5" rx="0.8" />
+        {/* Bottle neck */}
+        <rect x="3.5" y="14.2" width="3" height="2" rx="0.5" />
+        {/* Bottle cap */}
+        <line x1="3.2" y1="14.2" x2="6.8" y2="14.2" strokeWidth="1.6" />
+        {/* Ink splash left of bottle */}
+        <path d="M1.5 15.5 C0.8 14.5 0.5 13.8 1.2 13.2" />
+        <circle cx="0.9" cy="12.6" r="0.4" fill="currentColor" stroke="none" />
+        <circle cx="1.8" cy="11.8" r="0.3" fill="currentColor" stroke="none" />
+        {/* Quill feather shaft - diagonal from bottom-left to upper-right */}
+        <line x1="5" y1="15.5" x2="20" y2="2.5" />
+        {/* Quill tip / nib at bottle */}
+        <path d="M5 15.5 C4.2 14.8 4.5 13.8 5.5 14.5" />
+        {/* Feather barbs - left side */}
+        <path d="M8.5 12.5 C7 11.5 6 11 7 9.5" strokeWidth="1" />
+        <path d="M11 10 C9.5 9 8.5 8.5 9.5 7" strokeWidth="1" />
+        <path d="M13.5 7.5 C12 6.8 11.5 6 12 4.8" strokeWidth="1" />
+        {/* Feather barbs - right side */}
+        <path d="M9.5 11 C11 10.5 11.8 10 11.5 8.5" strokeWidth="1" />
+        <path d="M12 8.5 C13.5 8 14.2 7.5 14 6" strokeWidth="1" />
+        <path d="M14.5 6.2 C16 5.8 16.8 5.2 16.5 3.8" strokeWidth="1" />
+        {/* Feather tip at top */}
+        <path d="M18.5 3.5 C19.5 2.5 20.5 2 20 2.5" strokeWidth="1.2" />
+      </svg>
+    ),
+    label: "Write",
+  },
   {
     key: "journal",
     icon: (
       <svg
-        width="22"
-        height="22"
+        width="28"
+        height="28"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -785,12 +827,96 @@ const NAV_ITEMS: { key: Tab; icon: React.ReactElement; label: string }[] = [
   },
   {
     key: "reflections",
-    icon: <span className="text-xl">🔮</span>,
+    icon: (
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        role="img"
+        aria-label="Reflections"
+      >
+        {/* Crescent moon */}
+        <path d="M20 13.5A8 8 0 1 1 10.5 4a6 6 0 0 0 9.5 9.5z" />
+        {/* Stars */}
+        <circle cx="19" cy="4" r="0.6" fill="currentColor" stroke="none" />
+        <circle cx="21" cy="7" r="0.5" fill="currentColor" stroke="none" />
+        <circle cx="17" cy="2" r="0.45" fill="currentColor" stroke="none" />
+        {/* Ripple lines below - introspective water */}
+        <path d="M5 19 C6.5 18.5 8 19.5 9.5 19" strokeWidth="1" opacity="0.6" />
+        <path
+          d="M4 21 C6 20.2 8.5 21.2 11 20.5"
+          strokeWidth="0.9"
+          opacity="0.4"
+        />
+      </svg>
+    ),
     label: "Reflections",
   },
   {
     key: "profile",
-    icon: <span className="text-xl">🌿</span>,
+    icon: (
+      <svg
+        width="28"
+        height="28"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        role="img"
+        aria-label="Profile"
+      >
+        {/* Round head */}
+        <circle cx="12" cy="6" r="3" />
+        {/* Hair - bob style, top and sides */}
+        <path
+          d="M9 5 C9 3 10 2.2 12 2.2 C14 2.2 15 3 15 5"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+        {/* Headphones arc */}
+        <path d="M8.5 6.5 C8.5 3.5 15.5 3.5 15.5 6.5" strokeWidth="1.2" />
+        {/* Headphone left ear cup */}
+        <circle cx="8.2" cy="6.8" r="1" fill="currentColor" stroke="none" />
+        {/* Headphone right ear cup */}
+        <circle cx="15.8" cy="6.8" r="1" fill="currentColor" stroke="none" />
+        {/* Neck */}
+        <line x1="12" y1="9" x2="12" y2="10.5" />
+        {/* Torso / T-shirt body */}
+        <path d="M8.5 10.5 C8.5 10.5 10 10 12 10 C14 10 15.5 10.5 15.5 10.5 L15.5 16 L8.5 16 Z" />
+        {/* Left arm */}
+        <path d="M8.5 11 L6.5 14" />
+        {/* Right arm (slightly back for backpack) */}
+        <path d="M15.5 11 L17 13.5" />
+        {/* Backpack */}
+        <rect
+          x="14.5"
+          y="11"
+          width="2.5"
+          height="3.5"
+          rx="0.8"
+          fill="currentColor"
+          stroke="none"
+          opacity="0.7"
+        />
+        {/* Backpack strap */}
+        <path d="M14.5 11.5 C14 10.8 14.5 10 15.5 10.5" strokeWidth="1" />
+        {/* Left leg (forward) */}
+        <line x1="10" y1="16" x2="9" y2="21" />
+        {/* Right leg (back) */}
+        <line x1="14" y1="16" x2="15" y2="21" />
+        {/* Left foot */}
+        <path d="M9 21 L7.5 21.5" strokeWidth="1.8" />
+        {/* Right foot */}
+        <path d="M15 21 L16.5 21.5" strokeWidth="1.8" />
+      </svg>
+    ),
     label: "Profile",
   },
 ];
@@ -805,7 +931,7 @@ function BottomNav({
   return (
     <nav
       data-ocid="nav.panel"
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-border/60 px-2 pb-safe"
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-border/60 px-2 pb-safe z-50"
       style={{ boxShadow: "0 -4px 20px rgba(107,91,142,0.08)" }}
     >
       <div className="flex items-stretch">
@@ -817,7 +943,7 @@ function BottomNav({
               data-ocid={`nav.${item.key}.tab`}
               type="button"
               onClick={() => onChange(item.key)}
-              className="flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all duration-200"
+              className="flex-1 flex flex-col items-center justify-center gap-1 py-3.5 transition-all duration-200"
             >
               <span
                 className="transition-all duration-200"
@@ -1053,7 +1179,7 @@ function AppInner() {
         {/* Mobile shell */}
         <div className="max-w-[430px] mx-auto min-h-screen relative overflow-x-hidden">
           {/* Scrollable content area */}
-          <main className="overflow-y-auto" style={{ paddingBottom: "5rem" }}>
+          <main className="overflow-y-auto" style={{ paddingBottom: "5.5rem" }}>
             {activeTab === "home" && (
               <HomeTab
                 onNavigate={setActiveTab}

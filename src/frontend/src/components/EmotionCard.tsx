@@ -1,6 +1,6 @@
 import { Globe } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -264,7 +264,7 @@ function EmotionDetailScreen({
   return (
     <motion.div
       data-ocid="emotion_card.modal"
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
       initial={shouldReduceMotion ? {} : { opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={shouldReduceMotion ? {} : { opacity: 0 }}
@@ -287,7 +287,7 @@ function EmotionDetailScreen({
         className="relative w-full sm:max-w-lg mx-auto rounded-t-3xl sm:rounded-3xl overflow-hidden"
         style={{
           background: "#FAF7F2",
-          maxHeight: "90vh",
+          maxHeight: "calc(100dvh - 88px)",
           boxShadow: "0 8px 40px rgba(45,37,64,0.25)",
         }}
         initial={shouldReduceMotion ? {} : { opacity: 0, scale: 0.97, y: 16 }}
@@ -295,7 +295,10 @@ function EmotionDetailScreen({
         exit={shouldReduceMotion ? {} : { opacity: 0, scale: 0.97, y: 16 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
-        <div className="overflow-y-auto" style={{ maxHeight: "90vh" }}>
+        <div
+          className="overflow-y-auto"
+          style={{ maxHeight: "calc(100dvh - 88px)" }}
+        >
           {/* Back button */}
           <div className="flex items-center px-5 pt-5 pb-3">
             <button
@@ -540,6 +543,22 @@ function EmotionCardInner(props: EmotionCardProps & { index: number }) {
   const [visibilityOpen, setVisibilityOpen] = useState(false);
   const [currentVisibility, setCurrentVisibility] = useState(visibility);
   const [deleting, setDeleting] = useState(false);
+
+  // Lock body AND main scroll container when detail modal is open
+  useEffect(() => {
+    const mainEl = document.querySelector("main") as HTMLElement | null;
+    if (detailOpen) {
+      document.body.style.overflow = "hidden";
+      if (mainEl) mainEl.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      if (mainEl) mainEl.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      if (mainEl) mainEl.style.overflow = "";
+    };
+  }, [detailOpen]);
   const [deleted, setDeleted] = useState(false);
   const [localReaction, setLocalReaction] = useState<string | null>(
     current_user_reaction ?? null,
