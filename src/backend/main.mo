@@ -176,6 +176,27 @@ actor {
     cancelledAt : ?Int;
     deliveredAt : ?Int;
   };
+  type Confession = {
+    id : Text;
+    userId : Principal;
+    mode : Text; // UNIVERSE | PRIVATE | WITNESS
+    content : Text;
+    wordCount : Nat;
+    hadVoiceComponent : Bool;
+    witnessUserId : ?Principal;
+    witnessNotified : Bool;
+    witnessOpened : Bool;
+    witnessResponse : ?Text;
+    witnessResponseDelivered : Bool;
+    crisisSignalDetected : Bool;
+    crisisResourcesShown : Bool;
+    apologyBridgeShown : Bool;
+    apologyCreatedAfter : Bool;
+    onThisDaySurfaced : Bool;
+    deletionRequested : Bool;
+    createdAt : Int;
+  };
+
 
 
   // ────── Love Letter System Types ────────────────
@@ -240,6 +261,7 @@ actor {
   let loveLetters = Map.empty<Principal, List.List<LoveLetter>>();
   let loveLetterReactions = Map.empty<Principal, List.List<LoveLetterReaction>>();
   let loveLetterSchedules = Map.empty<Principal, List.List<LoveLetterSchedule>>();
+  let confessions = Map.empty<Principal, List.List<Confession>>();
 
   // Initialize authorization state
   let accessControlState = AccessControl.initState();
@@ -351,7 +373,7 @@ actor {
         let found = entries.find(func(a) { a.id == apologyId });
         switch (found) {
           case (null) { Runtime.trap("Apology not found or you don't own it") };
-          case (?apology) {
+          case (?_apology) {
             let updated = entries.map<ApologyEntry, ApologyEntry>(
               func(a) {
                 if (a.id == apologyId) {
@@ -392,7 +414,7 @@ actor {
         let found = entries.find(func(a) { a.id == apologyId });
         switch (found) {
           case (null) { Runtime.trap("Apology not found or you don't own it") };
-          case (?apology) {
+          case (?_apology) {
             let newScheduleId = "schedule_" # Time.now().toText();
             let newSchedule : ApologySchedule = {
               id = newScheduleId;
@@ -447,7 +469,7 @@ actor {
         let found = schedules.find(func(s) { s.apologyId == apologyId });
         switch (found) {
           case (null) { Runtime.trap("Schedule not found or you don't own it") };
-          case (?schedule) {
+          case (?_schedule) {
             let updated = schedules.map<ApologySchedule, ApologySchedule>(
               func(s) {
                 if (s.apologyId == apologyId) {
@@ -500,7 +522,7 @@ actor {
     };
   };
 
-  func apologyScheduledByApologyId(senderUserId : Principal, apologyId : Text) : ?ApologySchedule {
+  func _apologyScheduledByApologyId(senderUserId : Principal, apologyId : Text) : ?ApologySchedule {
     switch (apologySchedules.get(senderUserId)) {
       case (null) { null };
       case (?entries) {
@@ -1249,6 +1271,83 @@ actor {
     };
     existing.add(schedule);
     loveLetterSchedules.add(caller, existing);
+    true;
+  };
+
+
+  // ────── Confession System Functions ──────────────────
+
+  public shared ({ caller }) func createConfession(
+    mode : Text,
+    content : Text,
+    wordCount : Nat,
+    hadVoiceComponent : Bool,
+    witnessUserId : ?Principal,
+    crisisSignalDetected : Bool,
+    crisisResourcesShown : Bool,
+  ) : async Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized");
+    };
+    let id = "confession_" # Time.now().toText();
+    let newConfession : Confession = {
+      id;
+      userId = caller;
+      mode;
+      content;
+      wordCount;
+      hadVoiceComponent;
+      witnessUserId;
+      witnessNotified = false;
+      witnessOpened = false;
+      witnessResponse = null;
+      witnessResponseDelivered = false;
+      crisisSignalDetected;
+      crisisResourcesShown;
+      apologyBridgeShown = false;
+      apologyCreatedAfter = false;
+      onThisDaySurfaced = false;
+      deletionRequested = false;
+      createdAt = Time.now();
+    };
+    let existing = switch (confessions.get(caller)) {
+      case (null) { List.empty<Confession>() };
+      case (?l) { l };
+    };
+    existing.add(newConfession);
+    confessions.add(caller, existing);
+    id;
+  };
+
+  public query ({ caller }) func getConfessions() : async [Confession] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized");
+    };
+    switch (confessions.get(caller)) {
+      case (null) { [] };
+      case (?l) { l.toArray() };
+    };
+  };
+
+  public shared ({ caller }) func saveWitnessResponse(
+    confessionId : Text,
+    responseType : Text,
+  ) : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized");
+    };
+    ignore confessionId;
+    ignore responseType;
+    true;
+  };
+
+  public shared ({ caller }) func deleteConfession(
+    confessionId : Text,
+  ) : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized");
+    };
+    ignore confessionId;
     true;
   };
 

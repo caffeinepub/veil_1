@@ -803,3 +803,123 @@ export function getLoveLetterScript(key: LoveLetterMomentKey): VoiceScript {
   saveRotationRecord(records);
   return chosen;
 }
+
+// ── Confession Voice Moments (cf_a through cf_e) ──────────────────────────────
+
+export type ConfessionMomentKey =
+  | "cf_a" // Universe mode release
+  | "cf_b" // Private mode release
+  | "cf_c" // Witness mode — after sending
+  | "cf_d" // Witness response received "I hear you"
+  | "cf_e"; // Witness response received "You are still worthy"
+
+const CONFESSION_SCRIPTS: Record<ConfessionMomentKey, VoiceScript[]> = {
+  cf_a: [
+    {
+      id: "cf_a_s1",
+      text: "It is released.\nInto something greater than this moment.\nYou carried it long enough.",
+      durationHint: 8,
+      audioPath: "/assets/voice/cf_a_s1.mp3",
+    },
+    {
+      id: "cf_a_s2",
+      text: "You said it.\nAfter all this time — you finally said it.\nThat is everything.",
+      durationHint: 8,
+      audioPath: "/assets/voice/cf_a_s2.mp3",
+    },
+    {
+      id: "cf_a_s3",
+      text: "The universe received it.\nYou are lighter now.",
+      durationHint: 6,
+      audioPath: "/assets/voice/cf_a_s3.mp3",
+    },
+  ],
+  cf_b: [
+    {
+      id: "cf_b_s1",
+      text: "It is safe here.\nNamed. Held. Yours.\nNo one else will ever see this.",
+      durationHint: 7,
+      audioPath: "/assets/voice/cf_b_s1.mp3",
+    },
+    {
+      id: "cf_b_s2",
+      text: "You said it to yourself.\nThat is braver than most people ever get.",
+      durationHint: 7,
+      audioPath: "/assets/voice/cf_b_s2.mp3",
+    },
+    {
+      id: "cf_b_s3",
+      text: "It has a name now.\nNaming something takes away some of its power.",
+      durationHint: 7,
+      audioPath: "/assets/voice/cf_b_s3.mp3",
+    },
+  ],
+  cf_c: [
+    {
+      id: "cf_c_s1",
+      text: "Someone will hold this with you tonight.\nThey don't know who you are.\nBut they know what you carried.",
+      durationHint: 9,
+      audioPath: "/assets/voice/cf_c_s1.mp3",
+    },
+    {
+      id: "cf_c_s2",
+      text: "You let one person into this.\nNot to judge. Just to witness.\nThat is what courage looks like.",
+      durationHint: 9,
+      audioPath: "/assets/voice/cf_c_s2.mp3",
+    },
+  ],
+  cf_d: [
+    {
+      id: "cf_d_s1",
+      text: "Someone heard you.\nYou are not carrying this alone anymore.",
+      durationHint: 7,
+      audioPath: "/assets/voice/cf_d_s1.mp3",
+    },
+    {
+      id: "cf_d_s2",
+      text: "You were heard.\nThat is what you needed.\nThat is what you got.",
+      durationHint: 7,
+      audioPath: "/assets/voice/cf_d_s2.mp3",
+    },
+  ],
+  cf_e: [
+    {
+      id: "cf_e_s1",
+      text: "Someone who received what you shared\nsays you are still worthy.\nBelieve them.",
+      durationHint: 8,
+      audioPath: "/assets/voice/cf_e_s1.mp3",
+    },
+    {
+      id: "cf_e_s2",
+      text: "You are still worthy.\nWhatever this is — it does not define you.",
+      durationHint: 7,
+      audioPath: "/assets/voice/cf_e_s2.mp3",
+    },
+  ],
+};
+
+export function getConfessionScript(key: ConfessionMomentKey): VoiceScript {
+  const scripts = CONFESSION_SCRIPTS[key];
+  if (!scripts || scripts.length === 0) {
+    return {
+      id: "fallback",
+      text: "Veil is here.",
+      durationHint: 4,
+      audioPath: "",
+    };
+  }
+  if (scripts.length === 1) return scripts[0];
+  const records = getRotationRecord();
+  const rotKey = `cf_${key}`;
+  const rec = records[rotKey];
+  const currentWeek = getCurrentWeek();
+  let candidates = scripts;
+  if (rec && rec.lastPlayedWeek === currentWeek) {
+    const filtered = scripts.filter((s) => s.id !== rec.lastScriptId);
+    if (filtered.length > 0) candidates = filtered;
+  }
+  const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+  records[rotKey] = { lastScriptId: chosen.id, lastPlayedWeek: currentWeek };
+  saveRotationRecord(records);
+  return chosen;
+}

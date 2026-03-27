@@ -8,10 +8,12 @@ import {
 } from "react";
 import {
   type ApologyMomentKey,
+  type ConfessionMomentKey,
   type LoveLetterMomentKey,
   type MomentId,
   type VoiceScript,
   getApologyScript,
+  getConfessionScript,
   getLoveLetterScript,
   getMoment4Script,
   getMoment5Script,
@@ -80,7 +82,11 @@ function saveSettings(s: VeilVoiceSettings): void {
 
 export interface ActiveVoiceMoment {
   script: VoiceScript;
-  momentId: MomentId | ApologyMomentKey | LoveLetterMomentKey;
+  momentId:
+    | MomentId
+    | ApologyMomentKey
+    | LoveLetterMomentKey
+    | ConfessionMomentKey;
 }
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -92,7 +98,11 @@ interface VeilVoiceContextValue {
   completeOnboarding: (enabled: boolean) => void;
   // Trigger a voice moment. Accepts numeric ids (1–6) or apology string keys.
   triggerMoment: (
-    momentId: MomentId | ApologyMomentKey | LoveLetterMomentKey,
+    momentId:
+      | MomentId
+      | ApologyMomentKey
+      | LoveLetterMomentKey
+      | ConfessionMomentKey,
     options?: {
       emotionType?: string;
       streakDays?: number;
@@ -178,7 +188,11 @@ export function VeilVoiceProvider({ children }: { children: React.ReactNode }) {
 
   const triggerMoment = useCallback(
     (
-      momentId: MomentId | ApologyMomentKey | LoveLetterMomentKey,
+      momentId:
+        | MomentId
+        | ApologyMomentKey
+        | LoveLetterMomentKey
+        | ConfessionMomentKey,
       options?: { emotionType?: string; streakDays?: number },
     ) => {
       if (!settings.onboarding_completed) return;
@@ -215,6 +229,8 @@ export function VeilVoiceProvider({ children }: { children: React.ReactNode }) {
         }
       } else if (typeof momentId === "string" && momentId.startsWith("ll_")) {
         script = getLoveLetterScript(momentId as LoveLetterMomentKey);
+      } else if (typeof momentId === "string" && momentId.startsWith("cf_")) {
+        script = getConfessionScript(momentId as ConfessionMomentKey);
       } else {
         script = getApologyScript(momentId as ApologyMomentKey);
       }

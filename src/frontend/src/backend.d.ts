@@ -181,4 +181,8 @@ export interface backendInterface {
     scheduleApology(apologyId: string, recipientUserId: Principal | null, recipientType: string, recipientContact: string | null, deliveryTime: bigint): Promise<boolean>;
     sendApologyNow(apologyId: string, recipientUserId: Principal | null, recipientType: string, recipientContact: string | null): Promise<boolean>;
     updateApologyContent(apologyId: string, content: string, editLevel: string): Promise<boolean>;
+    createConfession(mode: string, content: string, wordCount: bigint, hadVoiceComponent: boolean, witnessUserId: [] | [Principal], crisisSignalDetected: boolean, crisisResourcesShown: boolean): Promise<string>;
+    getConfessions(): Promise<Array<{ id: string; userId: Principal; mode: string; content: string; wordCount: bigint; hadVoiceComponent: boolean; witnessUserId: [] | [Principal]; witnessNotified: boolean; witnessOpened: boolean; witnessResponse: [] | [string]; witnessResponseDelivered: boolean; crisisSignalDetected: boolean; crisisResourcesShown: boolean; apologyBridgeShown: boolean; apologyCreatedAfter: boolean; onThisDaySurfaced: boolean; deletionRequested: boolean; createdAt: bigint; }>>;
+    saveWitnessResponse(confessionId: string, responseType: string): Promise<boolean>;
+    deleteConfession(confessionId: string): Promise<boolean>;
 }

@@ -20,6 +20,7 @@ import type { JournalEntry, Reflection, Stats, UserProfile } from "./backend";
 import type { ApologyEntry, ApologySchedule } from "./backend";
 import { ApologyCreationFlow } from "./components/ApologyCreationFlow";
 import { CompanionCard } from "./components/CompanionCard";
+import { ConfessFlow } from "./components/ConfessFlow";
 import { EmotionCheckIn } from "./components/EmotionCheckIn";
 import { EmotionFeed } from "./components/EmotionFeed";
 import { LoveLetterFlow } from "./components/LoveLetterFlow";
@@ -419,6 +420,7 @@ function WriteTab({ onSaved }: { onSaved: () => void }) {
   const [body, setBody] = useState("");
   const [showApologyFlow, setShowApologyFlow] = useState(false);
   const [showLoveLetterFlow, setShowLoveLetterFlow] = useState(false);
+  const [showConfessFlow, setShowConfessFlow] = useState(false);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -458,6 +460,37 @@ function WriteTab({ onSaved }: { onSaved: () => void }) {
         </p>
       </div>
 
+      {/* Confess Card */}
+      <div className="px-5 mb-3">
+        <button
+          type="button"
+          data-ocid="write.confess.button"
+          onClick={() => setShowConfessFlow(true)}
+          className="w-full rounded-3xl p-6 shadow-soft text-left transition-all duration-200 hover:shadow-glow active:scale-[0.98] flex items-start gap-4"
+          style={{
+            background: "linear-gradient(135deg, #1e1a2e 0%, #2a1f3d 100%)",
+          }}
+        >
+          <div className="text-3xl mt-0.5">🕊</div>
+          <div>
+            <div className="font-serif text-base font-semibold text-white/90 mb-1">
+              Confess
+            </div>
+            <p className="text-white/50 text-sm">
+              Put down what you have been carrying alone.
+            </p>
+          </div>
+        </button>
+      </div>
+      {showConfessFlow && (
+        <ConfessFlow
+          onClose={() => setShowConfessFlow(false)}
+          onOpenApology={() => {
+            setShowConfessFlow(false);
+            setShowApologyFlow(true);
+          }}
+        />
+      )}
       {/* Express Love Card */}
       <div className="px-5 mb-3">
         <button
@@ -1263,6 +1296,39 @@ function ProfileTab() {
                   Send
                 </button>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Private Confessions */}
+        <section className="px-5 mb-5">
+          <div
+            className="rounded-3xl p-5"
+            style={{
+              background: "linear-gradient(135deg, #1e1a2e 0%, #16122a 100%)",
+            }}
+          >
+            <h2 className="font-serif text-sm font-semibold text-white/80 mb-2">
+              🕊 Private Confessions
+            </h2>
+            <p className="text-white/40 text-xs leading-relaxed mb-3">
+              Things you have released, kept privately, or shared with a
+              witness. Only you can see these.
+            </p>
+            <div className="flex items-center justify-between">
+              <span className="text-white/25 text-xs">
+                Universe · Private · Witnessed
+              </span>
+              <button
+                type="button"
+                className="text-white/40 text-xs px-3 py-1.5 rounded-full border border-white/10 hover:border-white/20 transition-all"
+                style={{ minHeight: "36px" }}
+                aria-label="Open confess to add a new confession"
+                onClick={() => {}}
+                data-ocid="profile.confessions.button"
+              >
+                Write one
+              </button>
             </div>
           </div>
         </section>
