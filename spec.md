@@ -1,58 +1,54 @@
-# Veil — Reflections Tab v2.0
+# Veil — Profile Tab v2.0
 
 ## Current State
 
-The Reflections tab (4th tab) exists as a basic implementation:
-- A list of hardcoded PROMPTS shown as cards
-- Users can write a text response to each prompt and save it
-- Saved reflections fetched from backend via `getAllReflections()` / `addReflection()`
-- A `JoyThisMonthCard` showing captured joy count from localStorage
-- No Emotional Compass, no Connection Mirror, no Growth Narrative, no archive
+The Profile tab currently exists as an inline `ProfileTab()` function inside `App.tsx`. It renders:
+- Basic avatar + name edit
+- Simple 3-column stats (Entries, Streak, Top Mood)
+- Mood history bar chart
+- Apology history (sent/received/unsent)
+- Letters section (static placeholder UI)
+- Private Confessions entry point
+- EI Settings Panel
+- Quick Release Settings
+- Voice Settings Panel
 
-Backend has: `addReflection(prompt, response)` and `getAllReflections()` returning `Reflection[]`
+This is the placeholder profile — not the full identity experience described in the spec.
 
 ## Requested Changes (Diff)
 
 ### Add
-- **ReflectionsTab v2.0** component extracted to `src/frontend/src/components/ReflectionsTab.tsx`
-- **Emotional Intelligence Engine (prompt generation)** — priority-based system (8 levels) generating contextual prompts from localStorage event data; uses `reflectionsEngine.ts` lib
-- **Still Pool visual identity** — deep blue-grey (#1A2030) background, ripple texture, serif typography
-- **Single active prompt screen** — one prompt at a time, Write / Speak options, "Not ready" dismiss
-- **Text reflection writing experience** — full screen, prompt visible at top, auto-save draft, no distractions
-- **Voice reflection** — recording stored as blob in localStorage, waveform visualization, playback
-- **Follow-up question** — single optional deeper question after main response
-- **Completion screen** — warm non-metric acknowledgment, Veil voice moment
-- **Reflection archive** — seasonal navigation (Year→Season→Month), page design with prompt italic + response
-- **Emotional Compass** — compass rose visual (4 zones: N/S/E/W), hand-drawn aesthetic, needle direction, 12-month history strip, narrative sentence
-- **Connection Mirror ("People in Your Story")** — warm observations from journal person tags and letter recipients, no rankings
-- **Growth Narrative** — monthly/quarterly/annual generated narrative paragraphs
-- **Thematic Clustering** — AI-style theme detection across 10+ reflections (pattern matching on keywords)
-- **Memory Resurfacing** — anniversary, emotional mirror, growth proof triggers
-- **First-time empty state** with onboarding message and first prompt
-- **4 voice moments** (A–D) integrated with VeilVoiceContext
-- **Settings panel** for prompt frequency, compass, connections, growth narrative toggles
+- `ProfileTab.tsx` as a standalone component (extracted from App.tsx + massively expanded)
+- **Section 1 — Profile Header**: aura background (dominant emotion color at 15% opacity), circular avatar with monogram fallback, Playfair Display name, royal SVG signature in gold (#E8C060), emotional identity tags (3 words separated by · dots), dynamic/static tagline, gear icon (Settings), share icon (top left)
+- **Section 2 — Emotional Stats**: 4 stat cards — Moments Captured, Inner Circle count, Support Given ("You have shown up X times"), Expressions Made
+- **Section 3 — Becoming**: full-width card with aura bg at 12% opacity, italic gold serif generated line ("You have been becoming..."), "Updated quarterly" footer, private to owner only
+- **Section 4 — Emotional Compass Preview**: compact card showing compass needle SVG (hand-drawn aesthetic), one narrative line, "See your full direction →" link that navigates to Reflections tab
+- **Section 5 — Life Chapters Bookshelf**: horizontal scrollable shelf, each completed volume as a spine with vertical text, width proportional to page count, spine color = dominant emotion aura, current volume shown as open book at right end, tap spine navigates to Journal tab
+- **Section 6 — Emotional Timeline**: view switcher (Daily/Weekly/Monthly), cards with left emotion aura color bar, visibility badges, voice playback button if applicable, monthly view has calendar grid + warm narrative, NO percentages ever
+- **Section 7 — Support Given**: full-width warm card (owner only) showing "X times you sent support", love letters written, apologies made, times as witness
+- **Section 8 — Inner Circle**: entry card with member count, tap opens full-screen Inner Circle Dashboard with 3 sections: Members (Cousins + Closest Friends horizontal scroll, Add Member button), Emotional Signals (sorted by distress first, support reaction buttons), Shared With You (count + open-each-one flow)
+- **Section 9 — Settings**: full-screen settings panel (11 sections) with all toggles as specified: Profile, Account & Security, Quick Release, Notifications, Privacy & Visibility, Emotional Intelligence, Veil Voice, Journal, Reflections, Inner Circle, Support & Legal
+- Profile data stored in localStorage keys: `veil-profile-data`, `veil-inner-circle`, `veil-emotional-timeline`, `veil-support-given`
+- Voice System moments: first profile open, becoming line update, first volume completed
 
 ### Modify
-- `App.tsx`: replace inline `ReflectionsTab()` function with import of new component; keep `addReflection`/`getAllReflections` backend calls passed as props
+- `App.tsx`: remove inline `ProfileTab()` function, import `ProfileTab` from `./components/ProfileTab`, pass `onNavigate` prop so compass preview can navigate to Reflections and bookshelf can navigate to Journal
 
 ### Remove
-- Old inline `ReflectionsTab` function and `JoyThisMonthCard` from App.tsx (moved to new component file)
-- Hardcoded `PROMPTS` array (replaced by engine-generated prompts)
+- Inline `ProfileTab` function from `App.tsx`
+- Old mood history percentage bars from Profile (moved to Journal/Reflections)
+- Streak counter from Profile stats (Rule 1 — NO GAMIFICATION)
 
 ## Implementation Plan
 
-1. Create `src/frontend/src/lib/reflectionsEngine.ts` — prompt generation logic (priority 1–8), compass direction calculation from localStorage emotion events, connection mirror observation builder, growth narrative generator, thematic clustering
-2. Create `src/frontend/src/components/ReflectionsTab.tsx` — full v2.0 implementation:
-   - Main screen with Still Pool aesthetic
-   - Active prompt card with Write/Speak/Not Ready
-   - Writing experience (full screen)
-   - Voice reflection (Web Audio API + localStorage blob)
-   - Follow-up flow
-   - Completion screen
-   - Archive (seasonal navigation)
-   - Emotional Compass section
-   - Connection Mirror section
-   - Growth Narrative section
-   - First-time empty state
-   - Settings panel
-3. Update `App.tsx` to import and use `ReflectionsTab` component, remove old inline implementation
+1. Create `src/frontend/src/components/ProfileTab.tsx` with all 9 sections as described
+2. Use `generateSignature` from `../lib/signatureGenerator` for the royal signature SVG
+3. Use `AURA_COLOR_MAP` from `../utils/auraColors` for emotion-based background colors
+4. Use `buildCompassState` from `../lib/reflectionsEngine` for compass preview data
+5. Read journal volumes from localStorage key `journal_volumes` (from journalExtensions)
+6. Profile data persisted in localStorage (`veil-profile-data`)
+7. Inner Circle data in localStorage (`veil-inner-circle`)
+8. Timeline entries synthesized from existing journal/checkin data in localStorage
+9. Settings panel rendered as a full-screen sheet over the profile
+10. Inner Circle Dashboard rendered as a full-screen overlay
+11. Update `App.tsx` to use the new `ProfileTab` component with `onNavigate` prop
