@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useVeilVoice } from "../contexts/VeilVoiceContext";
 import { getAuraColor } from "../utils/auraColors";
 import { getQuietMomentMessage } from "../utils/quietMomentMessages";
 
@@ -25,6 +26,26 @@ export function QuietMomentScreen({
 }: QuietMomentProps) {
   const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   const rm = reduceMotion;
+  const { triggerMoment } = useVeilVoice();
+
+  // Voice System: Moment 6 — plays 1 second into Quiet Moment, only for difficult emotions
+  const difficultEmotions = [
+    "STRESSED",
+    "SAD",
+    "FRUSTRATED",
+    "ANXIOUS",
+    "LONELY",
+    "NUMB",
+  ];
+  const isDifficult = difficultEmotions.includes(emotion_type.toUpperCase());
+  const isDifficultRef = useRef(isDifficult);
+  const triggerMomentRef = useRef(triggerMoment);
+  triggerMomentRef.current = triggerMoment;
+  useEffect(() => {
+    if (!isDifficultRef.current) return;
+    const t = setTimeout(() => triggerMomentRef.current(6), 1000);
+    return () => clearTimeout(t);
+  }, []); // stable refs used inside effect
 
   const auraColor = getAuraColor(emotion_type, isDark);
   const bgOpacity = isDark ? 0.22 : 0.17;

@@ -90,13 +90,6 @@ export class ExternalBlob {
     }
 }
 export type Time = bigint;
-export interface JournalEntry {
-    id: string;
-    title: string;
-    body: string;
-    mood: string;
-    timestamp: Time;
-}
 export interface Stats {
     totalEntries: bigint;
     moodFrequency: Array<[string, bigint]>;
@@ -107,6 +100,84 @@ export interface Reflection {
     response: string;
     timestamp: Time;
     prompt: string;
+}
+export interface ApologyReceiverReflection {
+    id: string;
+    completedAt?: bigint;
+    emotionSelected: string;
+    receiverUserId: Principal;
+    journalEntryId?: string;
+    createdAt: bigint;
+    privateReflectionText?: string;
+    apologyId: string;
+    actionTaken: string;
+    reflectionComplete: boolean;
+}
+export interface VeilVoiceSettings {
+    moments_enabled: VeilVoiceMomentsEnabled;
+    onboarding_completed: boolean;
+    voice_enabled: boolean;
+}
+export interface VeilVoiceMomentsEnabled {
+    after_checkin: boolean;
+    carrying_awareness: boolean;
+    after_silent_dump: boolean;
+    after_text_dump: boolean;
+    after_voice_dump: boolean;
+    morning_follow_up: boolean;
+}
+export interface JournalEntry {
+    id: string;
+    title: string;
+    body: string;
+    mood: string;
+    timestamp: Time;
+}
+export interface ApologyEntry {
+    id: string;
+    status: string;
+    editLevel: string;
+    nonVeilToken?: string;
+    signature: string;
+    emotionType: string;
+    sharedSilenceTriggered: boolean;
+    content: string;
+    deliveredAt?: bigint;
+    acknowledgedAt?: bigint;
+    aiVersionUsed: string;
+    source: string;
+    createdAt: bigint;
+    recipientContact?: string;
+    aiAssisted: boolean;
+    isAnonymous: boolean;
+    deliveryMethod: string;
+    deliveryTime?: bigint;
+    recipientUserId?: Principal;
+    rescheduleCount: bigint;
+    crisisSignalDetected: boolean;
+    visibility: string;
+    recipientType: string;
+    senderUserId: Principal;
+    nonVeilTokenExpires?: bigint;
+    openedAt?: bigint;
+}
+export interface EmotionEntry {
+    id: string;
+    emotionType: string;
+    aiPromptText?: string;
+    customEmotionLabel?: string;
+    voiceDurationSeconds?: bigint;
+    source: string;
+    emotionLabel: string;
+    exhaleMessageShown: string;
+    createdAt: Time;
+    emoji: string;
+    crisisResourcesShown: boolean;
+    crisisSignalDetected: boolean;
+    visibilityLevel: string;
+    aiPromptShown: boolean;
+    textReflection?: string;
+    voiceOverrideApplied: boolean;
 }
 export interface CompanionDump {
     id: string;
@@ -123,8 +194,28 @@ export interface CompanionDump {
     audioStored: boolean;
     textContent?: string;
 }
+export interface EmotionStreakRecord {
+    acknowledgmentType?: string;
+    emotionType: string;
+    lastAwarenessShownAt?: bigint;
+    updatedAt: bigint;
+    crisisResourcesShown: boolean;
+    lastAwarenessMilestone?: bigint;
+}
 export interface UserProfile {
     displayName: string;
+}
+export interface ApologySchedule {
+    id: string;
+    status: string;
+    deliveredAt?: bigint;
+    apologyId: string;
+    rescheduleCount: bigint;
+    cancelledAt?: bigint;
+    scheduledDeliveryTime: bigint;
+    reminderSent: boolean;
+    reminderSentAt?: bigint;
+    senderUserId: Principal;
 }
 export enum UserRole {
     admin = "admin",
@@ -133,25 +224,48 @@ export enum UserRole {
 }
 export interface backendInterface {
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
+    acknowledgeApologyOpened(apologyId: string): Promise<boolean>;
     addJournalEntry(title: string, body: string, mood: string): Promise<string>;
     addReflection(prompt: string, response: string): Promise<string>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    cancelApologySchedule(apologyId: string): Promise<boolean>;
+    createApology(content: string, signature: string, emotionType: string, isAnonymous: boolean, aiAssisted: boolean, aiVersionUsed: string, source: string, crisisSignalDetected: boolean): Promise<string>;
+    deleteAllMyApologies(): Promise<boolean>;
     deleteJournalEntry(id: string): Promise<void>;
+    deleteUnsentApology(apologyId: string): Promise<boolean>;
+    getAllApologySenderIds(): Promise<Array<Principal>>;
     getAllJournalEntries(): Promise<Array<JournalEntry>>;
     getAllReflections(): Promise<Array<Reflection>>;
+    getApologyById(apologyId: string): Promise<ApologyEntry | null>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCompanionDumps(): Promise<Array<CompanionDump>>;
-    getProfile(): Promise<UserProfile | null>;
+    getEmotionEntries(): Promise<Array<EmotionEntry>>;
+    getEmotionStreakRecord(emotionType: string): Promise<EmotionStreakRecord | null>;
+    getInnerCircle(): Promise<Array<Principal>>;
+    getMyApologies(): Promise<Array<ApologyEntry>>;
+    getMyScheduledApologies(): Promise<Array<ApologySchedule>>;
+    getMyUnsentApologies(): Promise<Array<ApologyEntry>>;
+    getReceivedApologies(): Promise<Array<ApologyEntry>>;
+    getReceiverReflection(apologyId: string): Promise<ApologyReceiverReflection | null>;
     getStats(): Promise<Stats>;
     getTodaysDump(): Promise<CompanionDump | null>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    getVeilVoiceSettings(): Promise<VeilVoiceSettings | null>;
     isCallerAdmin(): Promise<boolean>;
+    rescheduleApology(apologyId: string, newDeliveryTime: bigint): Promise<boolean>;
+    saveApologyAsUnsent(apologyId: string): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     saveCompanionDump(contentType: string, textContent: string | null, voiceDurationSeconds: bigint | null, crisisSignalDetected: boolean, crisisResourcesShown: boolean, exhaleMessageShown: string, streakDay: bigint): Promise<string>;
-    updateProfile(displayName: string): Promise<void>;
+    saveEmotionEntry(emotionType: string, emotionLabel: string, emoji: string, customEmotionLabel: string | null, textReflection: string | null, voiceDurationSeconds: bigint | null, visibilityLevel: string, voiceOverrideApplied: boolean, aiPromptShown: boolean, aiPromptText: string | null, crisisSignalDetected: boolean, crisisResourcesShown: boolean, exhaleMessageShown: string): Promise<string>;
+    saveEmotionStreakRecord(emotionType: string, lastAwarenessMilestone: bigint | null, acknowledgmentType: string | null, crisisResourcesShown: boolean): Promise<void>;
+    saveReceiverReflection(apologyId: string, emotionSelected: string, privateReflectionText: string | null, actionTaken: string): Promise<boolean>;
+    saveVeilVoiceSettings(voice_enabled: boolean, after_voice_dump: boolean, after_text_dump: boolean, after_silent_dump: boolean, morning_follow_up: boolean, carrying_awareness: boolean, after_checkin: boolean, onboarding_completed: boolean): Promise<void>;
+    scheduleApology(apologyId: string, recipientUserId: Principal | null, recipientType: string, recipientContact: string | null, deliveryTime: bigint): Promise<boolean>;
+    sendApologyNow(apologyId: string, recipientUserId: Principal | null, recipientType: string, recipientContact: string | null): Promise<boolean>;
+    updateApologyContent(apologyId: string, content: string, editLevel: string): Promise<boolean>;
 }
-import type { CompanionDump as _CompanionDump, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
+import type { ApologyEntry as _ApologyEntry, ApologyReceiverReflection as _ApologyReceiverReflection, ApologySchedule as _ApologySchedule, CompanionDump as _CompanionDump, EmotionEntry as _EmotionEntry, EmotionStreakRecord as _EmotionStreakRecord, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole, VeilVoiceSettings as _VeilVoiceSettings } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
@@ -165,6 +279,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor._initializeAccessControlWithSecret(arg0);
+            return result;
+        }
+    }
+    async acknowledgeApologyOpened(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.acknowledgeApologyOpened(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.acknowledgeApologyOpened(arg0);
             return result;
         }
     }
@@ -210,6 +338,48 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async cancelApologySchedule(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.cancelApologySchedule(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.cancelApologySchedule(arg0);
+            return result;
+        }
+    }
+    async createApology(arg0: string, arg1: string, arg2: string, arg3: boolean, arg4: boolean, arg5: string, arg6: string, arg7: boolean): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createApology(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createApology(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+            return result;
+        }
+    }
+    async deleteAllMyApologies(): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteAllMyApologies();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteAllMyApologies();
+            return result;
+        }
+    }
     async deleteJournalEntry(arg0: string): Promise<void> {
         if (this.processError) {
             try {
@@ -221,6 +391,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.deleteJournalEntry(arg0);
+            return result;
+        }
+    }
+    async deleteUnsentApology(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteUnsentApology(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteUnsentApology(arg0);
+            return result;
+        }
+    }
+    async getAllApologySenderIds(): Promise<Array<Principal>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllApologySenderIds();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllApologySenderIds();
             return result;
         }
     }
@@ -252,60 +450,172 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getApologyById(arg0: string): Promise<ApologyEntry | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getApologyById(arg0);
+                return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getApologyById(arg0);
+            return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
+        }
+    }
     async getCallerUserProfile(): Promise<UserProfile | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserProfile();
-                return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n9(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserProfile();
-            return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n9(this._uploadFile, this._downloadFile, result);
         }
     }
     async getCallerUserRole(): Promise<UserRole> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCallerUserRole();
-                return from_candid_UserRole_n4(this._uploadFile, this._downloadFile, result);
+                return from_candid_UserRole_n10(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCallerUserRole();
-            return from_candid_UserRole_n4(this._uploadFile, this._downloadFile, result);
+            return from_candid_UserRole_n10(this._uploadFile, this._downloadFile, result);
         }
     }
     async getCompanionDumps(): Promise<Array<CompanionDump>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getCompanionDumps();
-                return from_candid_vec_n6(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getCompanionDumps();
-            return from_candid_vec_n6(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n12(this._uploadFile, this._downloadFile, result);
         }
     }
-    async getProfile(): Promise<UserProfile | null> {
+    async getEmotionEntries(): Promise<Array<EmotionEntry>> {
         if (this.processError) {
             try {
-                const result = await this.actor.getProfile();
-                return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
+                const result = await this.actor.getEmotionEntries();
+                return from_candid_vec_n16(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getProfile();
-            return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
+            const result = await this.actor.getEmotionEntries();
+            return from_candid_vec_n16(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getEmotionStreakRecord(arg0: string): Promise<EmotionStreakRecord | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getEmotionStreakRecord(arg0);
+                return from_candid_opt_n19(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getEmotionStreakRecord(arg0);
+            return from_candid_opt_n19(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getInnerCircle(): Promise<Array<Principal>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getInnerCircle();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getInnerCircle();
+            return result;
+        }
+    }
+    async getMyApologies(): Promise<Array<ApologyEntry>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getMyApologies();
+                return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getMyApologies();
+            return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getMyScheduledApologies(): Promise<Array<ApologySchedule>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getMyScheduledApologies();
+                return from_candid_vec_n23(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getMyScheduledApologies();
+            return from_candid_vec_n23(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getMyUnsentApologies(): Promise<Array<ApologyEntry>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getMyUnsentApologies();
+                return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getMyUnsentApologies();
+            return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getReceivedApologies(): Promise<Array<ApologyEntry>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getReceivedApologies();
+                return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getReceivedApologies();
+            return from_candid_vec_n22(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getReceiverReflection(arg0: string): Promise<ApologyReceiverReflection | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getReceiverReflection(arg0);
+                return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getReceiverReflection(arg0);
+            return from_candid_opt_n26(this._uploadFile, this._downloadFile, result);
         }
     }
     async getStats(): Promise<Stats> {
@@ -326,28 +636,42 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getTodaysDump();
-                return from_candid_opt_n11(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n29(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getTodaysDump();
-            return from_candid_opt_n11(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n29(this._uploadFile, this._downloadFile, result);
         }
     }
     async getUserProfile(arg0: Principal): Promise<UserProfile | null> {
         if (this.processError) {
             try {
                 const result = await this.actor.getUserProfile(arg0);
-                return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
+                return from_candid_opt_n9(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getUserProfile(arg0);
-            return from_candid_opt_n3(this._uploadFile, this._downloadFile, result);
+            return from_candid_opt_n9(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getVeilVoiceSettings(): Promise<VeilVoiceSettings | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getVeilVoiceSettings();
+                return from_candid_opt_n30(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getVeilVoiceSettings();
+            return from_candid_opt_n30(this._uploadFile, this._downloadFile, result);
         }
     }
     async isCallerAdmin(): Promise<boolean> {
@@ -361,6 +685,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.isCallerAdmin();
+            return result;
+        }
+    }
+    async rescheduleApology(arg0: string, arg1: bigint): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.rescheduleApology(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.rescheduleApology(arg0, arg1);
+            return result;
+        }
+    }
+    async saveApologyAsUnsent(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveApologyAsUnsent(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveApologyAsUnsent(arg0);
             return result;
         }
     }
@@ -381,51 +733,168 @@ export class Backend implements backendInterface {
     async saveCompanionDump(arg0: string, arg1: string | null, arg2: bigint | null, arg3: boolean, arg4: boolean, arg5: string, arg6: bigint): Promise<string> {
         if (this.processError) {
             try {
-                const result = await this.actor.saveCompanionDump(arg0, to_candid_opt_n12(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n13(this._uploadFile, this._downloadFile, arg2), arg3, arg4, arg5, arg6);
+                const result = await this.actor.saveCompanionDump(arg0, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n32(this._uploadFile, this._downloadFile, arg2), arg3, arg4, arg5, arg6);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.saveCompanionDump(arg0, to_candid_opt_n12(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n13(this._uploadFile, this._downloadFile, arg2), arg3, arg4, arg5, arg6);
+            const result = await this.actor.saveCompanionDump(arg0, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n32(this._uploadFile, this._downloadFile, arg2), arg3, arg4, arg5, arg6);
             return result;
         }
     }
-    async updateProfile(arg0: string): Promise<void> {
+    async saveEmotionEntry(arg0: string, arg1: string, arg2: string, arg3: string | null, arg4: string | null, arg5: bigint | null, arg6: string, arg7: boolean, arg8: boolean, arg9: string | null, arg10: boolean, arg11: boolean, arg12: string): Promise<string> {
         if (this.processError) {
             try {
-                const result = await this.actor.updateProfile(arg0);
+                const result = await this.actor.saveEmotionEntry(arg0, arg1, arg2, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n31(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n32(this._uploadFile, this._downloadFile, arg5), arg6, arg7, arg8, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg9), arg10, arg11, arg12);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.updateProfile(arg0);
+            const result = await this.actor.saveEmotionEntry(arg0, arg1, arg2, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg3), to_candid_opt_n31(this._uploadFile, this._downloadFile, arg4), to_candid_opt_n32(this._uploadFile, this._downloadFile, arg5), arg6, arg7, arg8, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg9), arg10, arg11, arg12);
+            return result;
+        }
+    }
+    async saveEmotionStreakRecord(arg0: string, arg1: bigint | null, arg2: string | null, arg3: boolean): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveEmotionStreakRecord(arg0, to_candid_opt_n32(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n31(this._uploadFile, this._downloadFile, arg2), arg3);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveEmotionStreakRecord(arg0, to_candid_opt_n32(this._uploadFile, this._downloadFile, arg1), to_candid_opt_n31(this._uploadFile, this._downloadFile, arg2), arg3);
+            return result;
+        }
+    }
+    async saveReceiverReflection(arg0: string, arg1: string, arg2: string | null, arg3: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveReceiverReflection(arg0, arg1, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg2), arg3);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveReceiverReflection(arg0, arg1, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg2), arg3);
+            return result;
+        }
+    }
+    async saveVeilVoiceSettings(arg0: boolean, arg1: boolean, arg2: boolean, arg3: boolean, arg4: boolean, arg5: boolean, arg6: boolean, arg7: boolean): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.saveVeilVoiceSettings(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.saveVeilVoiceSettings(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+            return result;
+        }
+    }
+    async scheduleApology(arg0: string, arg1: Principal | null, arg2: string, arg3: string | null, arg4: bigint): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.scheduleApology(arg0, to_candid_opt_n33(this._uploadFile, this._downloadFile, arg1), arg2, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg3), arg4);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.scheduleApology(arg0, to_candid_opt_n33(this._uploadFile, this._downloadFile, arg1), arg2, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg3), arg4);
+            return result;
+        }
+    }
+    async sendApologyNow(arg0: string, arg1: Principal | null, arg2: string, arg3: string | null): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.sendApologyNow(arg0, to_candid_opt_n33(this._uploadFile, this._downloadFile, arg1), arg2, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg3));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.sendApologyNow(arg0, to_candid_opt_n33(this._uploadFile, this._downloadFile, arg1), arg2, to_candid_opt_n31(this._uploadFile, this._downloadFile, arg3));
+            return result;
+        }
+    }
+    async updateApologyContent(arg0: string, arg1: string, arg2: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateApologyContent(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateApologyContent(arg0, arg1, arg2);
             return result;
         }
     }
 }
-function from_candid_CompanionDump_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CompanionDump): CompanionDump {
-    return from_candid_record_n8(_uploadFile, _downloadFile, value);
+function from_candid_ApologyEntry_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ApologyEntry): ApologyEntry {
+    return from_candid_record_n5(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
-    return from_candid_variant_n5(_uploadFile, _downloadFile, value);
+function from_candid_ApologyReceiverReflection_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ApologyReceiverReflection): ApologyReceiverReflection {
+    return from_candid_record_n28(_uploadFile, _downloadFile, value);
 }
-function from_candid_opt_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [string]): string | null {
+function from_candid_ApologySchedule_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ApologySchedule): ApologySchedule {
+    return from_candid_record_n25(_uploadFile, _downloadFile, value);
+}
+function from_candid_CompanionDump_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CompanionDump): CompanionDump {
+    return from_candid_record_n14(_uploadFile, _downloadFile, value);
+}
+function from_candid_EmotionEntry_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _EmotionEntry): EmotionEntry {
+    return from_candid_record_n18(_uploadFile, _downloadFile, value);
+}
+function from_candid_EmotionStreakRecord_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _EmotionStreakRecord): EmotionStreakRecord {
+    return from_candid_record_n21(_uploadFile, _downloadFile, value);
+}
+function from_candid_UserRole_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
+    return from_candid_variant_n11(_uploadFile, _downloadFile, value);
+}
+function from_candid_opt_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_CompanionDump]): CompanionDump | null {
-    return value.length === 0 ? null : from_candid_CompanionDump_n7(_uploadFile, _downloadFile, value[0]);
+function from_candid_opt_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_EmotionStreakRecord]): EmotionStreakRecord | null {
+    return value.length === 0 ? null : from_candid_EmotionStreakRecord_n20(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
+function from_candid_opt_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_ApologyReceiverReflection]): ApologyReceiverReflection | null {
+    return value.length === 0 ? null : from_candid_ApologyReceiverReflection_n27(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n29(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_CompanionDump]): CompanionDump | null {
+    return value.length === 0 ? null : from_candid_CompanionDump_n13(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_ApologyEntry]): ApologyEntry | null {
+    return value.length === 0 ? null : from_candid_ApologyEntry_n4(_uploadFile, _downloadFile, value[0]);
+}
+function from_candid_opt_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_VeilVoiceSettings]): VeilVoiceSettings | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
+function from_candid_opt_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [string]): string | null {
     return value.length === 0 ? null : value[0];
 }
-function from_candid_record_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_opt_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [bigint]): bigint | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [Principal]): Principal | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_UserProfile]): UserProfile | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_record_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: string;
     releasedPermanently: boolean;
     voiceDurationSeconds: [] | [bigint];
@@ -457,7 +926,7 @@ function from_candid_record_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint
     return {
         id: value.id,
         releasedPermanently: value.releasedPermanently,
-        voiceDurationSeconds: record_opt_to_undefined(from_candid_opt_n9(_uploadFile, _downloadFile, value.voiceDurationSeconds)),
+        voiceDurationSeconds: record_opt_to_undefined(from_candid_opt_n15(_uploadFile, _downloadFile, value.voiceDurationSeconds)),
         contentType: value.contentType,
         source: value.source,
         exhaleMessageShown: value.exhaleMessageShown,
@@ -467,10 +936,244 @@ function from_candid_record_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint
         streakDay: value.streakDay,
         visibility: value.visibility,
         audioStored: value.audioStored,
-        textContent: record_opt_to_undefined(from_candid_opt_n10(_uploadFile, _downloadFile, value.textContent))
+        textContent: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.textContent))
     };
 }
-function from_candid_variant_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: string;
+    emotionType: string;
+    aiPromptText: [] | [string];
+    customEmotionLabel: [] | [string];
+    voiceDurationSeconds: [] | [bigint];
+    source: string;
+    emotionLabel: string;
+    exhaleMessageShown: string;
+    createdAt: _Time;
+    emoji: string;
+    crisisResourcesShown: boolean;
+    crisisSignalDetected: boolean;
+    visibilityLevel: string;
+    aiPromptShown: boolean;
+    textReflection: [] | [string];
+    voiceOverrideApplied: boolean;
+}): {
+    id: string;
+    emotionType: string;
+    aiPromptText?: string;
+    customEmotionLabel?: string;
+    voiceDurationSeconds?: bigint;
+    source: string;
+    emotionLabel: string;
+    exhaleMessageShown: string;
+    createdAt: Time;
+    emoji: string;
+    crisisResourcesShown: boolean;
+    crisisSignalDetected: boolean;
+    visibilityLevel: string;
+    aiPromptShown: boolean;
+    textReflection?: string;
+    voiceOverrideApplied: boolean;
+} {
+    return {
+        id: value.id,
+        emotionType: value.emotionType,
+        aiPromptText: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.aiPromptText)),
+        customEmotionLabel: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.customEmotionLabel)),
+        voiceDurationSeconds: record_opt_to_undefined(from_candid_opt_n15(_uploadFile, _downloadFile, value.voiceDurationSeconds)),
+        source: value.source,
+        emotionLabel: value.emotionLabel,
+        exhaleMessageShown: value.exhaleMessageShown,
+        createdAt: value.createdAt,
+        emoji: value.emoji,
+        crisisResourcesShown: value.crisisResourcesShown,
+        crisisSignalDetected: value.crisisSignalDetected,
+        visibilityLevel: value.visibilityLevel,
+        aiPromptShown: value.aiPromptShown,
+        textReflection: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.textReflection)),
+        voiceOverrideApplied: value.voiceOverrideApplied
+    };
+}
+function from_candid_record_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    acknowledgmentType: [] | [string];
+    emotionType: string;
+    lastAwarenessShownAt: [] | [bigint];
+    updatedAt: bigint;
+    crisisResourcesShown: boolean;
+    lastAwarenessMilestone: [] | [bigint];
+}): {
+    acknowledgmentType?: string;
+    emotionType: string;
+    lastAwarenessShownAt?: bigint;
+    updatedAt: bigint;
+    crisisResourcesShown: boolean;
+    lastAwarenessMilestone?: bigint;
+} {
+    return {
+        acknowledgmentType: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.acknowledgmentType)),
+        emotionType: value.emotionType,
+        lastAwarenessShownAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.lastAwarenessShownAt)),
+        updatedAt: value.updatedAt,
+        crisisResourcesShown: value.crisisResourcesShown,
+        lastAwarenessMilestone: record_opt_to_undefined(from_candid_opt_n15(_uploadFile, _downloadFile, value.lastAwarenessMilestone))
+    };
+}
+function from_candid_record_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: string;
+    status: string;
+    deliveredAt: [] | [bigint];
+    apologyId: string;
+    rescheduleCount: bigint;
+    cancelledAt: [] | [bigint];
+    scheduledDeliveryTime: bigint;
+    reminderSent: boolean;
+    reminderSentAt: [] | [bigint];
+    senderUserId: Principal;
+}): {
+    id: string;
+    status: string;
+    deliveredAt?: bigint;
+    apologyId: string;
+    rescheduleCount: bigint;
+    cancelledAt?: bigint;
+    scheduledDeliveryTime: bigint;
+    reminderSent: boolean;
+    reminderSentAt?: bigint;
+    senderUserId: Principal;
+} {
+    return {
+        id: value.id,
+        status: value.status,
+        deliveredAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.deliveredAt)),
+        apologyId: value.apologyId,
+        rescheduleCount: value.rescheduleCount,
+        cancelledAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.cancelledAt)),
+        scheduledDeliveryTime: value.scheduledDeliveryTime,
+        reminderSent: value.reminderSent,
+        reminderSentAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.reminderSentAt)),
+        senderUserId: value.senderUserId
+    };
+}
+function from_candid_record_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: string;
+    completedAt: [] | [bigint];
+    emotionSelected: string;
+    receiverUserId: Principal;
+    journalEntryId: [] | [string];
+    createdAt: bigint;
+    privateReflectionText: [] | [string];
+    apologyId: string;
+    actionTaken: string;
+    reflectionComplete: boolean;
+}): {
+    id: string;
+    completedAt?: bigint;
+    emotionSelected: string;
+    receiverUserId: Principal;
+    journalEntryId?: string;
+    createdAt: bigint;
+    privateReflectionText?: string;
+    apologyId: string;
+    actionTaken: string;
+    reflectionComplete: boolean;
+} {
+    return {
+        id: value.id,
+        completedAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.completedAt)),
+        emotionSelected: value.emotionSelected,
+        receiverUserId: value.receiverUserId,
+        journalEntryId: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.journalEntryId)),
+        createdAt: value.createdAt,
+        privateReflectionText: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.privateReflectionText)),
+        apologyId: value.apologyId,
+        actionTaken: value.actionTaken,
+        reflectionComplete: value.reflectionComplete
+    };
+}
+function from_candid_record_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: string;
+    status: string;
+    editLevel: string;
+    nonVeilToken: [] | [string];
+    signature: string;
+    emotionType: string;
+    sharedSilenceTriggered: boolean;
+    content: string;
+    deliveredAt: [] | [bigint];
+    acknowledgedAt: [] | [bigint];
+    aiVersionUsed: string;
+    source: string;
+    createdAt: bigint;
+    recipientContact: [] | [string];
+    aiAssisted: boolean;
+    isAnonymous: boolean;
+    deliveryMethod: string;
+    deliveryTime: [] | [bigint];
+    recipientUserId: [] | [Principal];
+    rescheduleCount: bigint;
+    crisisSignalDetected: boolean;
+    visibility: string;
+    recipientType: string;
+    senderUserId: Principal;
+    nonVeilTokenExpires: [] | [bigint];
+    openedAt: [] | [bigint];
+}): {
+    id: string;
+    status: string;
+    editLevel: string;
+    nonVeilToken?: string;
+    signature: string;
+    emotionType: string;
+    sharedSilenceTriggered: boolean;
+    content: string;
+    deliveredAt?: bigint;
+    acknowledgedAt?: bigint;
+    aiVersionUsed: string;
+    source: string;
+    createdAt: bigint;
+    recipientContact?: string;
+    aiAssisted: boolean;
+    isAnonymous: boolean;
+    deliveryMethod: string;
+    deliveryTime?: bigint;
+    recipientUserId?: Principal;
+    rescheduleCount: bigint;
+    crisisSignalDetected: boolean;
+    visibility: string;
+    recipientType: string;
+    senderUserId: Principal;
+    nonVeilTokenExpires?: bigint;
+    openedAt?: bigint;
+} {
+    return {
+        id: value.id,
+        status: value.status,
+        editLevel: value.editLevel,
+        nonVeilToken: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.nonVeilToken)),
+        signature: value.signature,
+        emotionType: value.emotionType,
+        sharedSilenceTriggered: value.sharedSilenceTriggered,
+        content: value.content,
+        deliveredAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.deliveredAt)),
+        acknowledgedAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.acknowledgedAt)),
+        aiVersionUsed: value.aiVersionUsed,
+        source: value.source,
+        createdAt: value.createdAt,
+        recipientContact: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.recipientContact)),
+        aiAssisted: value.aiAssisted,
+        isAnonymous: value.isAnonymous,
+        deliveryMethod: value.deliveryMethod,
+        deliveryTime: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.deliveryTime)),
+        recipientUserId: record_opt_to_undefined(from_candid_opt_n8(_uploadFile, _downloadFile, value.recipientUserId)),
+        rescheduleCount: value.rescheduleCount,
+        crisisSignalDetected: value.crisisSignalDetected,
+        visibility: value.visibility,
+        recipientType: value.recipientType,
+        senderUserId: value.senderUserId,
+        nonVeilTokenExpires: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.nonVeilTokenExpires)),
+        openedAt: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.openedAt))
+    };
+}
+function from_candid_variant_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     admin: null;
 } | {
     user: null;
@@ -479,16 +1182,28 @@ function from_candid_variant_n5(_uploadFile: (file: ExternalBlob) => Promise<Uin
 }): UserRole {
     return "admin" in value ? UserRole.admin : "user" in value ? UserRole.user : "guest" in value ? UserRole.guest : value;
 }
-function from_candid_vec_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_CompanionDump>): Array<CompanionDump> {
-    return value.map((x)=>from_candid_CompanionDump_n7(_uploadFile, _downloadFile, x));
+function from_candid_vec_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_CompanionDump>): Array<CompanionDump> {
+    return value.map((x)=>from_candid_CompanionDump_n13(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_EmotionEntry>): Array<EmotionEntry> {
+    return value.map((x)=>from_candid_EmotionEntry_n17(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_ApologyEntry>): Array<ApologyEntry> {
+    return value.map((x)=>from_candid_ApologyEntry_n4(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_ApologySchedule>): Array<ApologySchedule> {
+    return value.map((x)=>from_candid_ApologySchedule_n24(_uploadFile, _downloadFile, x));
 }
 function to_candid_UserRole_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
     return to_candid_variant_n2(_uploadFile, _downloadFile, value);
 }
-function to_candid_opt_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: string | null): [] | [string] {
+function to_candid_opt_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: string | null): [] | [string] {
     return value === null ? candid_none() : candid_some(value);
 }
-function to_candid_opt_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: bigint | null): [] | [bigint] {
+function to_candid_opt_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: bigint | null): [] | [bigint] {
+    return value === null ? candid_none() : candid_some(value);
+}
+function to_candid_opt_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Principal | null): [] | [Principal] {
     return value === null ? candid_none() : candid_some(value);
 }
 function to_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): {

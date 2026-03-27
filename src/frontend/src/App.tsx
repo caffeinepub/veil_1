@@ -17,10 +17,17 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import type { JournalEntry, Reflection, Stats, UserProfile } from "./backend";
+import type { ApologyEntry, ApologySchedule } from "./backend";
+import { ApologyCreationFlow } from "./components/ApologyCreationFlow";
 import { CompanionCard } from "./components/CompanionCard";
 import { EmotionCheckIn } from "./components/EmotionCheckIn";
 import { EmotionFeed } from "./components/EmotionFeed";
 import { QuietMomentScreen } from "./components/QuietMomentScreen";
+import { ReceiverApologyView } from "./components/ReceiverApologyView";
+import { VeilVoiceOverlay } from "./components/VeilVoiceOverlay";
+import { VoiceOnboarding } from "./components/VoiceOnboarding";
+import { VoiceSettingsPanel } from "./components/VoiceSettingsPanel";
+import { VeilVoiceProvider } from "./contexts/VeilVoiceContext";
 import { useActor } from "./hooks/useActor";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -409,6 +416,7 @@ function WriteTab({ onSaved }: { onSaved: () => void }) {
   const [selectedMood, setSelectedMood] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [showApologyFlow, setShowApologyFlow] = useState(false);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -447,6 +455,33 @@ function WriteTab({ onSaved }: { onSaved: () => void }) {
           This is your safe space.
         </p>
       </div>
+
+      {/* Apology Card */}
+      <div className="px-5 mb-5">
+        <button
+          data-ocid="write.apology.button"
+          type="button"
+          onClick={() => setShowApologyFlow(true)}
+          className="w-full bg-white rounded-3xl p-6 shadow-soft text-left transition-all duration-200 hover:shadow-glow active:scale-[0.98] flex items-start gap-4"
+        >
+          <div className="text-3xl mt-0.5">🕊</div>
+          <div>
+            <div className="font-serif text-base font-semibold text-veil-text mb-1">
+              Write an Apology
+            </div>
+            <p className="text-veil-muted text-sm">
+              Say what you’ve been carrying.
+            </p>
+          </div>
+        </button>
+      </div>
+
+      {showApologyFlow && (
+        <ApologyCreationFlow
+          onClose={() => setShowApologyFlow(false)}
+          onSaved={() => setShowApologyFlow(false)}
+        />
+      )}
 
       <div className="px-5 space-y-5">
         {/* Mood selector */}
@@ -751,11 +786,17 @@ function ProfileTab() {
   const [nameInput, setNameInput] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [selectedApology, setSelectedApology] = useState<ApologyEntry | null>(
+    null,
+  );
+  const [expandedApologyId, setExpandedApologyId] = useState<string | null>(
+    null,
+  );
   const { data: profile } = useQuery<UserProfile | null>({
     queryKey: ["profile"],
     queryFn: async () => {
       if (!actor) return null;
-      return actor.getProfile();
+      return actor.getCallerUserProfile();
     },
     enabled: !!actor && !isFetching,
   });
@@ -773,6 +814,32 @@ function ProfileTab() {
     },
     enabled: !!actor && !isFetching,
   });
+  const { data: sentApologies } = useQuery<ApologyEntry[]>({
+    queryKey: ["sentApologies"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getMyApologies();
+    },
+    enabled: !!actor && !isFetching,
+  });
+
+  const { data: receivedApologies } = useQuery<ApologyEntry[]>({
+    queryKey: ["receivedApologies"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getReceivedApologies();
+    },
+    enabled: !!actor && !isFetching,
+  });
+
+  const { data: unsentApologies } = useQuery<ApologyEntry[]>({
+    queryKey: ["unsentApologies"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getMyUnsentApologies();
+    },
+    enabled: !!actor && !isFetching,
+  });
 
   const displayName = profile?.displayName ?? "";
   const initial = displayName ? displayName[0].toUpperCase() : "✦";
@@ -786,7 +853,7 @@ function ProfileTab() {
     if (!actor) return;
     setSaving(true);
     try {
-      await actor.updateProfile(nameInput.trim());
+      await actor.saveCallerUserProfile({ displayName: nameInput.trim() });
       qc.invalidateQueries({ queryKey: ["profile"] });
       setEditing(false);
       toast.success("Profile updated");
@@ -954,6 +1021,138 @@ function ProfileTab() {
             </p>
           </div>
         )}
+
+        {/* Apologies */}
+        <section className="bg-white rounded-3xl shadow-soft overflow-hidden">
+          <div className="px-5 pt-5 pb-3 border-b border-gray-50">
+            <h2 className="font-serif text-sm font-semibold text-veil-text">
+              🕊 Apologies
+            </h2>
+          </div>
+          {/* Sent */}
+          {(sentApologies ?? []).filter(
+            (a) => a.status !== "UNSENT" && a.status !== "DRAFT",
+          ).length > 0 && (
+            <div className="px-5 py-3 border-b border-gray-50">
+              <p className="text-xs font-semibold text-veil-muted uppercase tracking-wide mb-2">
+                Sent
+              </p>
+              {(sentApologies ?? [])
+                .filter((a) => a.status !== "UNSENT" && a.status !== "DRAFT")
+                .map((a, i) => (
+                  <button
+                    data-ocid={`profile.sent_apology.item.${i + 1}`}
+                    key={a.id}
+                    type="button"
+                    onClick={() =>
+                      setExpandedApologyId(
+                        expandedApologyId === a.id ? null : a.id,
+                      )
+                    }
+                    className="w-full text-left py-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-veil-text font-serif italic">
+                        {a.signature}
+                      </span>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full ${
+                          a.status === "ACKNOWLEDGED"
+                            ? "bg-green-50 text-green-600"
+                            : a.status === "OPENED"
+                              ? "bg-blue-50 text-blue-600"
+                              : "bg-purple-50 text-veil-purple"
+                        }`}
+                      >
+                        {a.status === "ACKNOWLEDGED"
+                          ? "Received"
+                          : a.status === "OPENED"
+                            ? "Opened"
+                            : "Delivered"}
+                      </span>
+                    </div>
+                    {expandedApologyId === a.id && (
+                      <p className="text-xs text-veil-muted mt-2 leading-relaxed">
+                        {a.content}
+                      </p>
+                    )}
+                  </button>
+                ))}
+            </div>
+          )}
+          {/* Received */}
+          {(receivedApologies ?? []).length > 0 && (
+            <div className="px-5 py-3 border-b border-gray-50">
+              <p className="text-xs font-semibold text-veil-muted uppercase tracking-wide mb-2">
+                Received
+              </p>
+              {(receivedApologies ?? []).map((a, i) => (
+                <button
+                  data-ocid={`profile.received_apology.item.${i + 1}`}
+                  key={a.id}
+                  type="button"
+                  onClick={() => setSelectedApology(a)}
+                  className="w-full text-left py-2 flex items-center justify-between"
+                >
+                  <span className="text-sm text-veil-text">
+                    Someone apologized to you
+                  </span>
+                  <span className="text-xs text-veil-muted">
+                    {new Date(
+                      Number(a.createdAt) / 1_000_000,
+                    ).toLocaleDateString()}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          {/* Unsent */}
+          {(unsentApologies ?? []).length > 0 && (
+            <div className="px-5 py-3">
+              <p className="text-xs font-semibold text-veil-muted uppercase tracking-wide mb-2">
+                Private Reflections
+              </p>
+              {(unsentApologies ?? []).map((a, i) => (
+                <div
+                  data-ocid={`profile.unsent_apology.item.${i + 1}`}
+                  key={a.id}
+                  className="flex items-center justify-between py-2"
+                >
+                  <span className="text-sm text-veil-text font-serif italic">
+                    {a.signature || "Unsent apology"}
+                  </span>
+                  <span className="text-xs text-veil-muted">
+                    {new Date(
+                      Number(a.createdAt) / 1_000_000,
+                    ).toLocaleDateString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          {(sentApologies ?? []).length === 0 &&
+            (receivedApologies ?? []).length === 0 &&
+            (unsentApologies ?? []).length === 0 && (
+              <div
+                data-ocid="profile.apologies.empty_state"
+                className="px-5 py-8 text-center"
+              >
+                <p className="text-sm text-veil-muted">
+                  Your apology history will appear here.
+                </p>
+              </div>
+            )}
+        </section>
+
+        {selectedApology && (
+          <ReceiverApologyView
+            apology={selectedApology}
+            onClose={() => setSelectedApology(null)}
+          />
+        )}
+
+        {/* Veil Voice Settings */}
+        <VoiceSettingsPanel />
       </div>
     </div>
   );
@@ -1069,7 +1268,7 @@ export default function App() {
     queryKey: ["profile"],
     queryFn: async () => {
       if (!actor) return null;
-      return actor.getProfile();
+      return actor.getCallerUserProfile();
     },
     enabled: !!actor && !isFetching,
   });
@@ -1084,58 +1283,63 @@ export default function App() {
   });
 
   return (
-    <div
-      className="min-h-screen bg-background"
-      style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
-    >
-      {/* Mobile shell */}
-      <div className="max-w-[430px] mx-auto min-h-screen relative overflow-x-hidden">
-        {/* Scrollable content area */}
-        <main className="overflow-y-auto" style={{ paddingBottom: "5rem" }}>
-          {activeTab === "home" && (
-            <HomeTab
-              onNavigate={setActiveTab}
-              profile={profile}
-              entries={entries}
-              onPostSuccess={handlePostSuccess}
+    <VeilVoiceProvider>
+      <div
+        className="min-h-screen bg-background"
+        style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+      >
+        {/* Mobile shell */}
+        <div className="max-w-[430px] mx-auto min-h-screen relative overflow-x-hidden">
+          {/* Scrollable content area */}
+          <main className="overflow-y-auto" style={{ paddingBottom: "5rem" }}>
+            {activeTab === "home" && (
+              <HomeTab
+                onNavigate={setActiveTab}
+                profile={profile}
+                entries={entries}
+                onPostSuccess={handlePostSuccess}
+              />
+            )}
+            {activeTab === "write" && (
+              <WriteTab onSaved={() => setActiveTab("journal")} />
+            )}
+            {activeTab === "journal" && <JournalTab />}
+            {activeTab === "reflections" && <ReflectionsTab />}
+            {activeTab === "profile" && <ProfileTab />}
+          </main>
+
+          <BottomNav active={activeTab} onChange={setActiveTab} />
+          {quietMoment && (
+            <QuietMomentScreen
+              emotion_type={quietMoment.emotion_type}
+              emotion_label={quietMoment.emotion_label}
+              emotion_emoji={quietMoment.emotion_emoji}
+              visibility={quietMoment.visibility}
+              onDismiss={() => setQuietMoment(null)}
+              reduceMotion={reduceMotion}
             />
           )}
-          {activeTab === "write" && (
-            <WriteTab onSaved={() => setActiveTab("journal")} />
-          )}
-          {activeTab === "journal" && <JournalTab />}
-          {activeTab === "reflections" && <ReflectionsTab />}
-          {activeTab === "profile" && <ProfileTab />}
-        </main>
+        </div>
 
-        <BottomNav active={activeTab} onChange={setActiveTab} />
-        {quietMoment && (
-          <QuietMomentScreen
-            emotion_type={quietMoment.emotion_type}
-            emotion_label={quietMoment.emotion_label}
-            emotion_emoji={quietMoment.emotion_emoji}
-            visibility={quietMoment.visibility}
-            onDismiss={() => setQuietMoment(null)}
-            reduceMotion={reduceMotion}
-          />
-        )}
+        <Toaster position="top-center" richColors />
+
+        {/* Footer */}
+        <footer className="hidden">
+          <p>
+            © {new Date().getFullYear()}. Built with love using{" "}
+            <a
+              href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              caffeine.ai
+            </a>
+          </p>
+        </footer>
       </div>
-
-      <Toaster position="top-center" richColors />
-
-      {/* Footer */}
-      <footer className="hidden">
-        <p>
-          © {new Date().getFullYear()}. Built with love using{" "}
-          <a
-            href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            caffeine.ai
-          </a>
-        </p>
-      </footer>
-    </div>
+      {/* Veil Voice System — global audio layer */}
+      <VeilVoiceOverlay />
+      <VoiceOnboarding />
+    </VeilVoiceProvider>
   );
 }

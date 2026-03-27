@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Lock, MicIcon, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useVeilVoice } from "../contexts/VeilVoiceContext";
 import { useActor } from "../hooks/useActor";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -165,6 +166,7 @@ function drawWaveframe(
 export function CompanionCard() {
   const { actor, isFetching } = useActor();
   const qc = useQueryClient();
+  const { triggerMoment } = useVeilVoice();
 
   // ── Card state ──
   const [cardState, setCardState] = useState<CardState>("DEFAULT");
@@ -283,7 +285,7 @@ export function CompanionCard() {
   useEffect(() => {
     return () => stopRecordingCleanup();
     // stopRecordingCleanup only uses stable refs — safe to omit
-  }, []); // biome-ignore lint/correctness/useExhaustiveDependencies: uses stable refs only
+  }, []); // stopRecordingCleanup only uses stable refs
 
   // ── Stable ref-based cleanup (no re-creation needed) ──
   function stopRecordingCleanup() {
@@ -361,7 +363,7 @@ export function CompanionCard() {
     }
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: stopRecordingCleanup uses stable refs only
+  // biome-ignore lint/correctness/useExhaustiveDependencies: stopRecordingCleanup uses stable refs
   const stopRecording = useCallback(() => {
     const finalDuration = durationRef.current;
     stopRecordingCleanup();
@@ -372,7 +374,9 @@ export function CompanionCard() {
       textContent: null,
     };
     setActiveSubState("postVoice");
-  }, []);
+    // Voice System: Moment 1 — after voice dump
+    setTimeout(() => triggerMoment(1), 400);
+  }, [triggerMoment]);
 
   function goToExhale(
     contentType: "VOICE_RELEASED" | "TEXT" | "SILENT",
@@ -395,6 +399,12 @@ export function CompanionCard() {
     };
     saveMutation.mutate(payload);
     setCardState("RELEASED");
+    // Voice System: Moment 2 (text dump) or Moment 3 (silent dump)
+    if (contentType === "TEXT") {
+      setTimeout(() => triggerMoment(2), 600);
+    } else if (contentType === "SILENT") {
+      setTimeout(() => triggerMoment(3), 600);
+    }
   }
 
   function completeDump(

@@ -1,6 +1,12 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useActor } from "../hooks/useActor";
+import {
+  AWARENESS_MILESTONES,
+  DIFFICULT_EMOTION_TYPES,
+  getActiveMilestone,
+} from "../utils/streakAwarenessMessages";
+import { CarryingThisCard } from "./CarryingThisCard";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -272,6 +278,16 @@ export function EmotionCheckIn({ onPostSuccess }: EmotionCheckInProps = {}) {
   // Modal open/close
   const [open, setOpen] = useState(false);
 
+  // u2500u2500 Streak awareness state u2500u2500
+  const [streakInfo, setStreakInfo] = useState<{
+    emotionType: string;
+    emotionEmoji: string;
+    emotionLabel: string;
+    streakDays: number;
+    milestone: number;
+  } | null>(null);
+  const [streakCardDismissed, setStreakCardDismissed] = useState(false);
+
   // Stage flow
   const [stage, setStage] = useState<Stage>(1);
 
@@ -344,6 +360,73 @@ export function EmotionCheckIn({ onPostSuccess }: EmotionCheckInProps = {}) {
     };
   }, []);
 
+  // u2500u2500 Streak awareness computation u2500u2500
+  useEffect(() => {
+    if (!open || !actor || isFetching) return;
+    let cancelled = false;
+    async function computeStreak() {
+      try {
+        const entries = await (actor as any).getEmotionEntries();
+        if (cancelled) return;
+        // Build a set of {emotionType, dateString} pairs
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        for (const emotion of EMOTIONS) {
+          if (!DIFFICULT_EMOTION_TYPES.has(emotion.type)) continue;
+          // Count consecutive days ending today
+          let streak = 0;
+          const checkDate = new Date(today);
+          while (true) {
+            const dateStr = checkDate.toDateString();
+            const found = entries.some((e: any) => {
+              const d = new Date(Number(e.createdAt) / 1_000_000);
+              d.setHours(0, 0, 0, 0);
+              return (
+                e.emotionType === emotion.type && d.toDateString() === dateStr
+              );
+            });
+            if (found) {
+              streak++;
+              checkDate.setDate(checkDate.getDate() - 1);
+            } else {
+              break;
+            }
+          }
+          const milestone = getActiveMilestone(streak);
+          if (milestone === null) continue;
+          // Check if this milestone was already shown
+          const record = await (actor as any).getEmotionStreakRecord(
+            emotion.type,
+          );
+          if (cancelled) return;
+          const lastMilestone =
+            record && record.lastAwarenessMilestone !== null
+              ? Array.isArray(record.lastAwarenessMilestone) &&
+                record.lastAwarenessMilestone.length > 0
+                ? Number(record.lastAwarenessMilestone[0])
+                : null
+              : null;
+          if (lastMilestone === milestone) continue; // already shown for this milestone
+          // Show card for this emotion
+          setStreakInfo({
+            emotionType: emotion.type,
+            emotionEmoji: emotion.emoji,
+            emotionLabel: emotion.label,
+            streakDays: streak,
+            milestone,
+          });
+          setStreakCardDismissed(false);
+          return; // Show only one card (the first qualifying emotion)
+        }
+      } catch (_e) {
+        // Silently fail u2014 streak awareness is non-critical
+      }
+    }
+    computeStreak();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, actor, isFetching]);
   // ── Reset on close ──
   const resetFlow = useCallback(() => {
     setStage(1);
@@ -361,6 +444,8 @@ export function EmotionCheckIn({ onPostSuccess }: EmotionCheckInProps = {}) {
     setShowExhale(false);
     setAiPromptDismissed(false);
     setShowCrisisResources(false);
+    setStreakInfo(null);
+    setStreakCardDismissed(false);
     stopRecording();
   }, [stopRecording]);
 
@@ -657,6 +742,45 @@ export function EmotionCheckIn({ onPostSuccess }: EmotionCheckInProps = {}) {
                     transition={{ duration: 0.25 }}
                     className="px-5 pb-8"
                   >
+                    {/* u2500u2500 Awareness Card u2014 "You Have Been Carrying This" u2500u2500 */}
+                    <AnimatePresence>
+                      {streakInfo && !streakCardDismissed && (
+                        <CarryingThisCard
+                          emotionType={streakInfo.emotionType}
+                          streakDays={streakInfo.streakDays}
+                          onReflect={async () => {
+                            setStreakCardDismissed(true);
+                            // Record "REFLECTED" acknowledgment
+                            try {
+                              if (actor && !isFetching) {
+                                await (actor as any).saveEmotionStreakRecord(
+                                  streakInfo.emotionType,
+                                  [streakInfo.milestone],
+                                  ["REFLECTED"],
+                                  false,
+                                );
+                              }
+                            } catch (_e) {}
+                            closeModal();
+                          }}
+                          onDismiss={async () => {
+                            setStreakCardDismissed(true);
+                            // Record "DISMISSED" acknowledgment
+                            try {
+                              if (actor && !isFetching) {
+                                await (actor as any).saveEmotionStreakRecord(
+                                  streakInfo.emotionType,
+                                  [streakInfo.milestone],
+                                  ["DISMISSED"],
+                                  false,
+                                );
+                              }
+                            } catch (_e) {}
+                          }}
+                        />
+                      )}
+                    </AnimatePresence>
+
                     <h2 className="font-serif text-xl font-semibold text-veil-text mb-1">
                       How are you feeling right now?
                     </h2>

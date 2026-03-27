@@ -10,6 +10,58 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface ApologyEntry {
+  'id' : string,
+  'status' : string,
+  'editLevel' : string,
+  'nonVeilToken' : [] | [string],
+  'signature' : string,
+  'emotionType' : string,
+  'sharedSilenceTriggered' : boolean,
+  'content' : string,
+  'deliveredAt' : [] | [bigint],
+  'acknowledgedAt' : [] | [bigint],
+  'aiVersionUsed' : string,
+  'source' : string,
+  'createdAt' : bigint,
+  'recipientContact' : [] | [string],
+  'aiAssisted' : boolean,
+  'isAnonymous' : boolean,
+  'deliveryMethod' : string,
+  'deliveryTime' : [] | [bigint],
+  'recipientUserId' : [] | [Principal],
+  'rescheduleCount' : bigint,
+  'crisisSignalDetected' : boolean,
+  'visibility' : string,
+  'recipientType' : string,
+  'senderUserId' : Principal,
+  'nonVeilTokenExpires' : [] | [bigint],
+  'openedAt' : [] | [bigint],
+}
+export interface ApologyReceiverReflection {
+  'id' : string,
+  'completedAt' : [] | [bigint],
+  'emotionSelected' : string,
+  'receiverUserId' : Principal,
+  'journalEntryId' : [] | [string],
+  'createdAt' : bigint,
+  'privateReflectionText' : [] | [string],
+  'apologyId' : string,
+  'actionTaken' : string,
+  'reflectionComplete' : boolean,
+}
+export interface ApologySchedule {
+  'id' : string,
+  'status' : string,
+  'deliveredAt' : [] | [bigint],
+  'apologyId' : string,
+  'rescheduleCount' : bigint,
+  'cancelledAt' : [] | [bigint],
+  'scheduledDeliveryTime' : bigint,
+  'reminderSent' : boolean,
+  'reminderSentAt' : [] | [bigint],
+  'senderUserId' : Principal,
+}
 export interface CompanionDump {
   'id' : string,
   'releasedPermanently' : boolean,
@@ -24,6 +76,32 @@ export interface CompanionDump {
   'visibility' : string,
   'audioStored' : boolean,
   'textContent' : [] | [string],
+}
+export interface EmotionEntry {
+  'id' : string,
+  'emotionType' : string,
+  'aiPromptText' : [] | [string],
+  'customEmotionLabel' : [] | [string],
+  'voiceDurationSeconds' : [] | [bigint],
+  'source' : string,
+  'emotionLabel' : string,
+  'exhaleMessageShown' : string,
+  'createdAt' : Time,
+  'emoji' : string,
+  'crisisResourcesShown' : boolean,
+  'crisisSignalDetected' : boolean,
+  'visibilityLevel' : string,
+  'aiPromptShown' : boolean,
+  'textReflection' : [] | [string],
+  'voiceOverrideApplied' : boolean,
+}
+export interface EmotionStreakRecord {
+  'acknowledgmentType' : [] | [string],
+  'emotionType' : string,
+  'lastAwarenessShownAt' : [] | [bigint],
+  'updatedAt' : bigint,
+  'crisisResourcesShown' : boolean,
+  'lastAwarenessMilestone' : [] | [bigint],
 }
 export interface JournalEntry {
   'id' : string,
@@ -48,28 +126,102 @@ export interface UserProfile { 'displayName' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
+export interface VeilVoiceMomentsEnabled {
+  'after_checkin' : boolean,
+  'carrying_awareness' : boolean,
+  'after_silent_dump' : boolean,
+  'after_text_dump' : boolean,
+  'after_voice_dump' : boolean,
+  'morning_follow_up' : boolean,
+}
+export interface VeilVoiceSettings {
+  'moments_enabled' : VeilVoiceMomentsEnabled,
+  'onboarding_completed' : boolean,
+  'voice_enabled' : boolean,
+}
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'acknowledgeApologyOpened' : ActorMethod<[string], boolean>,
   'addJournalEntry' : ActorMethod<[string, string, string], string>,
   'addReflection' : ActorMethod<[string, string], string>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'cancelApologySchedule' : ActorMethod<[string], boolean>,
+  'createApology' : ActorMethod<
+    [string, string, string, boolean, boolean, string, string, boolean],
+    string
+  >,
+  'deleteAllMyApologies' : ActorMethod<[], boolean>,
   'deleteJournalEntry' : ActorMethod<[string], undefined>,
+  'deleteUnsentApology' : ActorMethod<[string], boolean>,
+  'getAllApologySenderIds' : ActorMethod<[], Array<Principal>>,
   'getAllJournalEntries' : ActorMethod<[], Array<JournalEntry>>,
   'getAllReflections' : ActorMethod<[], Array<Reflection>>,
+  'getApologyById' : ActorMethod<[string], [] | [ApologyEntry]>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCompanionDumps' : ActorMethod<[], Array<CompanionDump>>,
-  'getProfile' : ActorMethod<[], [] | [UserProfile]>,
+  'getEmotionEntries' : ActorMethod<[], Array<EmotionEntry>>,
+  'getEmotionStreakRecord' : ActorMethod<[string], [] | [EmotionStreakRecord]>,
+  'getInnerCircle' : ActorMethod<[], Array<Principal>>,
+  'getMyApologies' : ActorMethod<[], Array<ApologyEntry>>,
+  'getMyScheduledApologies' : ActorMethod<[], Array<ApologySchedule>>,
+  'getMyUnsentApologies' : ActorMethod<[], Array<ApologyEntry>>,
+  'getReceivedApologies' : ActorMethod<[], Array<ApologyEntry>>,
+  'getReceiverReflection' : ActorMethod<
+    [string],
+    [] | [ApologyReceiverReflection]
+  >,
   'getStats' : ActorMethod<[], Stats>,
   'getTodaysDump' : ActorMethod<[], [] | [CompanionDump]>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getVeilVoiceSettings' : ActorMethod<[], [] | [VeilVoiceSettings]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'rescheduleApology' : ActorMethod<[string, bigint], boolean>,
+  'saveApologyAsUnsent' : ActorMethod<[string], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'saveCompanionDump' : ActorMethod<
     [string, [] | [string], [] | [bigint], boolean, boolean, string, bigint],
     string
   >,
-  'updateProfile' : ActorMethod<[string], undefined>,
+  'saveEmotionEntry' : ActorMethod<
+    [
+      string,
+      string,
+      string,
+      [] | [string],
+      [] | [string],
+      [] | [bigint],
+      string,
+      boolean,
+      boolean,
+      [] | [string],
+      boolean,
+      boolean,
+      string,
+    ],
+    string
+  >,
+  'saveEmotionStreakRecord' : ActorMethod<
+    [string, [] | [bigint], [] | [string], boolean],
+    undefined
+  >,
+  'saveReceiverReflection' : ActorMethod<
+    [string, string, [] | [string], string],
+    boolean
+  >,
+  'saveVeilVoiceSettings' : ActorMethod<
+    [boolean, boolean, boolean, boolean, boolean, boolean, boolean, boolean],
+    undefined
+  >,
+  'scheduleApology' : ActorMethod<
+    [string, [] | [Principal], string, [] | [string], bigint],
+    boolean
+  >,
+  'sendApologyNow' : ActorMethod<
+    [string, [] | [Principal], string, [] | [string]],
+    boolean
+  >,
+  'updateApologyContent' : ActorMethod<[string, string, string], boolean>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

@@ -1,0 +1,280 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  type MomentId,
+  type VoiceScript,
+  getMoment4Script,
+  getMoment5Script,
+  getNextScript,
+} from "../lib/voiceScripts";
+
+// ── Settings types ──────────────────────────────────────────────────────────
+
+export interface VeilVoiceMomentsEnabled {
+  after_voice_dump: boolean;
+  after_text_dump: boolean;
+  after_silent_dump: boolean;
+  morning_follow_up: boolean;
+  carrying_awareness: boolean;
+  after_checkin: boolean;
+}
+
+export interface VeilVoiceSettings {
+  voice_enabled: boolean;
+  moments_enabled: VeilVoiceMomentsEnabled;
+  onboarding_completed: boolean;
+}
+
+export const DEFAULT_VOICE_SETTINGS: VeilVoiceSettings = {
+  voice_enabled: true,
+  moments_enabled: {
+    after_voice_dump: true,
+    after_text_dump: true,
+    after_silent_dump: true,
+    morning_follow_up: true,
+    carrying_awareness: true,
+    after_checkin: true,
+  },
+  onboarding_completed: false,
+};
+
+const SETTINGS_KEY = "veil_voice_settings";
+
+function loadSettings(): VeilVoiceSettings {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return { ...DEFAULT_VOICE_SETTINGS };
+    const parsed = JSON.parse(raw) as Partial<VeilVoiceSettings>;
+    return {
+      ...DEFAULT_VOICE_SETTINGS,
+      ...parsed,
+      moments_enabled: {
+        ...DEFAULT_VOICE_SETTINGS.moments_enabled,
+        ...(parsed.moments_enabled ?? {}),
+      },
+    };
+  } catch {
+    return { ...DEFAULT_VOICE_SETTINGS };
+  }
+}
+
+function saveSettings(s: VeilVoiceSettings): void {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch {
+    // ignore
+  }
+}
+
+// ── Active voice moment state ─────────────────────────────────────────────
+
+export interface ActiveVoiceMoment {
+  script: VoiceScript;
+  momentId: MomentId;
+}
+
+// ── Context ───────────────────────────────────────────────────────────────────
+
+interface VeilVoiceContextValue {
+  settings: VeilVoiceSettings;
+  updateSettings: (updates: Partial<VeilVoiceSettings>) => void;
+  onboardingNeeded: boolean;
+  completeOnboarding: (enabled: boolean) => void;
+  // Trigger a voice moment. Respects settings and onboarding state.
+  triggerMoment: (
+    momentId: MomentId,
+    options?: {
+      emotionType?: string; // for moments 4 and 5
+      streakDays?: number; // for moment 5
+    },
+  ) => void;
+  activeMoment: ActiveVoiceMoment | null;
+  dismissMoment: () => void;
+}
+
+const VeilVoiceContext = createContext<VeilVoiceContextValue | null>(null);
+
+export function useVeilVoice(): VeilVoiceContextValue {
+  const ctx = useContext(VeilVoiceContext);
+  if (!ctx) {
+    // Outside provider — return a no-op so components don't crash
+    return {
+      settings: DEFAULT_VOICE_SETTINGS,
+      updateSettings: () => {},
+      onboardingNeeded: false,
+      completeOnboarding: () => {},
+      triggerMoment: () => {},
+      activeMoment: null,
+      dismissMoment: () => {},
+    };
+  }
+  return ctx;
+}
+
+// ── Provider ────────────────────────────────────────────────────────────────────
+
+export function VeilVoiceProvider({ children }: { children: React.ReactNode }) {
+  const [settings, setSettings] = useState<VeilVoiceSettings>(loadSettings);
+  const [activeMoment, setActiveMoment] = useState<ActiveVoiceMoment | null>(
+    null,
+  );
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Derived: onboarding is needed if not completed
+  // Note: voice_enabled defaults to true from DEFAULT_VOICE_SETTINGS,
+  // but we treat onboarding_completed === false as “need to show onboarding”.
+  const onboardingNeeded = !settings.onboarding_completed;
+
+  const updateSettings = useCallback((updates: Partial<VeilVoiceSettings>) => {
+    setSettings((prev) => {
+      const next = {
+        ...prev,
+        ...updates,
+        moments_enabled: {
+          ...prev.moments_enabled,
+          ...((updates.moments_enabled as Partial<VeilVoiceMomentsEnabled>) ??
+            {}),
+        },
+      };
+      saveSettings(next);
+      return next;
+    });
+  }, []);
+
+  const completeOnboarding = useCallback(
+    (enabled: boolean) => {
+      updateSettings({
+        voice_enabled: enabled,
+        onboarding_completed: true,
+      });
+    },
+    [updateSettings],
+  );
+
+  // Stop any current audio and clear timers
+  const stopCurrent = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    if (dismissTimerRef.current) {
+      clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = null;
+    }
+  }, []);
+
+  const dismissMoment = useCallback(() => {
+    stopCurrent();
+    setActiveMoment(null);
+  }, [stopCurrent]);
+
+  const triggerMoment = useCallback(
+    (
+      momentId: MomentId,
+      options?: { emotionType?: string; streakDays?: number },
+    ) => {
+      // Guard: onboarding not completed — voice off until user opts in
+      if (!settings.onboarding_completed) return;
+      // Guard: master toggle
+      if (!settings.voice_enabled) return;
+
+      // Guard: individual moment toggle
+      const momentKey: Record<MomentId, keyof VeilVoiceMomentsEnabled> = {
+        1: "after_voice_dump",
+        2: "after_text_dump",
+        3: "after_silent_dump",
+        4: "morning_follow_up",
+        5: "carrying_awareness",
+        6: "after_checkin",
+      };
+      if (!settings.moments_enabled[momentKey[momentId]]) return;
+
+      // Stop any currently playing moment
+      stopCurrent();
+
+      // Select script
+      let script: VoiceScript;
+      if (momentId === 4) {
+        script = getMoment4Script(options?.emotionType ?? "STRESSED");
+      } else if (momentId === 5) {
+        script = getMoment5Script(
+          options?.emotionType ?? "STRESSED",
+          options?.streakDays ?? 3,
+          null,
+        );
+      } else {
+        script = getNextScript(momentId as Exclude<MomentId, 4 | 5>);
+      }
+
+      setActiveMoment({ script, momentId });
+
+      // Attempt audio playback — fails silently if file not found
+      try {
+        const audio = new Audio(script.audioPath);
+        audio.volume = 0.6; // intimate, not broadcast
+        audioRef.current = audio;
+
+        const onEnded = () => {
+          // Audio ended naturally — overlay stays a moment then fades
+          dismissTimerRef.current = setTimeout(dismissMoment, 800);
+        };
+
+        const onError = () => {
+          // Audio file not found: transcript overlay still shows, auto-dismiss by duration hint
+          audio.removeEventListener("ended", onEnded);
+          audio.removeEventListener("error", onError);
+          dismissTimerRef.current = setTimeout(
+            dismissMoment,
+            script.durationHint * 1000 + 1500,
+          );
+        };
+
+        audio.addEventListener("ended", onEnded);
+        audio.addEventListener("error", onError);
+        audio.play().catch(() => {
+          // Autoplay blocked or file not found — still show transcript
+          dismissTimerRef.current = setTimeout(
+            dismissMoment,
+            script.durationHint * 1000 + 1500,
+          );
+        });
+      } catch {
+        // Fallback: dismiss after duration hint
+        dismissTimerRef.current = setTimeout(
+          dismissMoment,
+          script.durationHint * 1000 + 1500,
+        );
+      }
+    },
+    [settings, stopCurrent, dismissMoment],
+  );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => stopCurrent();
+  }, [stopCurrent]);
+
+  return (
+    <VeilVoiceContext.Provider
+      value={{
+        settings,
+        updateSettings,
+        onboardingNeeded,
+        completeOnboarding,
+        triggerMoment,
+        activeMoment,
+        dismissMoment,
+      }}
+    >
+      {children}
+    </VeilVoiceContext.Provider>
+  );
+}
