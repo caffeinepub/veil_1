@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useVeilVoice } from "../contexts/VeilVoiceContext";
+import { CHECK_IN_FEEDBACK } from "../lib/emotionalFeedbackCopy";
 import { getAuraColor } from "../utils/auraColors";
 import { getQuietMomentMessage } from "../utils/quietMomentMessages";
+import { EmotionalFeedbackOverlay } from "./EmotionalFeedbackOverlay";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -11,6 +13,7 @@ interface QuietMomentProps {
   emotion_emoji: string;
   visibility: "ONLY_ME" | "INNER_CIRCLE" | "FRIENDS" | "GLOBAL";
   onDismiss: () => void;
+  onExpressVisually?: () => void;
   reduceMotion?: boolean;
 }
 
@@ -22,6 +25,7 @@ export function QuietMomentScreen({
   emotion_emoji,
   visibility,
   onDismiss,
+  onExpressVisually,
   reduceMotion = false,
 }: QuietMomentProps) {
   const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -41,6 +45,12 @@ export function QuietMomentScreen({
   const isDifficultRef = useRef(isDifficult);
   const triggerMomentRef = useRef(triggerMoment);
   triggerMomentRef.current = triggerMoment;
+
+  // Emotional Feedback Overlay — shown before Quiet Moment reveals
+  const emotionKey = emotion_type.toLowerCase();
+  const feedbackLines =
+    CHECK_IN_FEEDBACK[emotionKey] ?? CHECK_IN_FEEDBACK.custom;
+  const [showFeedbackFirst, setShowFeedbackFirst] = useState(true);
   useEffect(() => {
     if (!isDifficultRef.current) return;
     const t = setTimeout(() => triggerMomentRef.current(6), 1000);
@@ -154,6 +164,16 @@ export function QuietMomentScreen({
 
   const transition = (ms: number) =>
     rm ? undefined : `opacity ${ms}ms ease-out`;
+
+  if (showFeedbackFirst) {
+    return (
+      <EmotionalFeedbackOverlay
+        lines={feedbackLines}
+        background="default"
+        onDismiss={() => setShowFeedbackFirst(false)}
+      />
+    );
+  }
 
   return (
     <dialog
@@ -341,6 +361,36 @@ export function QuietMomentScreen({
           </button>
         )}
       </div>
+
+      {/* Express visually entry point */}
+      {onExpressVisually && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onExpressVisually();
+          }}
+          style={{
+            position: "absolute",
+            bottom: "5rem",
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            fontSize: 13,
+            color: softColor,
+            opacity: stayVisible ? 0.45 : 0,
+            transition: transition(400),
+            fontFamily: "inherit",
+            letterSpacing: "0.04em",
+            padding: "8px",
+          }}
+        >
+          Express visually →
+        </button>
+      )}
     </dialog>
   );
 }

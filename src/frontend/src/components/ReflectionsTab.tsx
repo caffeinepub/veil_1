@@ -26,7 +26,10 @@ import {
   saveLocalReflection,
   saveReflectionsSettings,
 } from "../lib/reflectionsEngine";
+import { getVisualEntries } from "../lib/visualExpressionState";
+import { AlgorithmInsightsPanel } from "./AlgorithmInsightsPanel";
 import { EmotionalCompass } from "./EmotionalCompass";
+import { VisualStoryGallery } from "./VisualStoryGallery";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
@@ -1719,6 +1722,9 @@ export function ReflectionsTab() {
           </button>
         </div>
 
+        {/* EIE Algorithm Insights Panel */}
+        <AlgorithmInsightsPanel />
+
         {/* Footer */}
         <div className="pt-4 text-center">
           <p className="text-xs" style={{ color: MUTED, opacity: 0.45 }}>
@@ -1753,6 +1759,9 @@ export function ReflectionsTab() {
             />
           )}
         </AnimatePresence>
+
+        {/* Visual Story Gallery */}
+        <VisualStoryGallery entries={getVisualEntries()} />
       </div>
     </div>
   );

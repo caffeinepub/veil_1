@@ -2,7 +2,12 @@ import type { Principal } from "@icp-sdk/core/principal";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useVeilVoice } from "../contexts/VeilVoiceContext";
 import { useActor } from "../hooks/useActor";
+import {
+  type FeedbackBackground,
+  WRITE_FEEDBACK,
+} from "../lib/emotionalFeedbackCopy";
 import { getConfessionScript } from "../lib/voiceScripts";
+import { EmotionalFeedbackOverlay } from "./EmotionalFeedbackOverlay";
 
 type ConfessMode = "UNIVERSE" | "PRIVATE" | "WITNESS" | null;
 type ConfessScreen = "entry" | "mode_select" | "writing" | "release";
@@ -124,6 +129,10 @@ export function ConfessFlow({ onClose, onOpenApology }: ConfessFlowProps) {
   const [voiceScript, setVoiceScript] = useState<string | null>(null);
   const [voiceVisible, setVoiceVisible] = useState(false);
   const [apologyBridgeShown, setApologyBridgeShown] = useState(false);
+  const [feedbackOverlay, setFeedbackOverlay] = useState<{
+    lines: string[];
+    background: FeedbackBackground;
+  } | null>(null);
   const [entryReady, setEntryReady] = useState(false);
 
   const crisisTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -230,6 +239,17 @@ export function ConfessFlow({ onClose, onOpenApology }: ConfessFlowProps) {
     setTimeout(() => setVoiceVisible(true), 1500);
     setTimeout(() => setApologyBridgeShown(true), 8000);
     triggerMoment(momentKey as "cf_a" | "cf_b" | "cf_c");
+
+    // Show emotional feedback overlay immediately
+    const feedbackLines =
+      mode === "UNIVERSE"
+        ? WRITE_FEEDBACK.confession_universe
+        : mode === "PRIVATE"
+          ? WRITE_FEEDBACK.confession_private
+          : WRITE_FEEDBACK.confession_witness;
+    setTimeout(() => {
+      setFeedbackOverlay({ lines: feedbackLines, background: "dark" });
+    }, 600);
   };
 
   // ── ENTRY SCREEN ────────────────────────────────────────────────────────────
@@ -695,5 +715,15 @@ export function ConfessFlow({ onClose, onOpenApology }: ConfessFlowProps) {
     );
   }
 
-  return null;
+  return (
+    <>
+      {feedbackOverlay && (
+        <EmotionalFeedbackOverlay
+          lines={feedbackOverlay.lines}
+          background={feedbackOverlay.background}
+          onDismiss={() => setFeedbackOverlay(null)}
+        />
+      )}
+    </>
+  );
 }

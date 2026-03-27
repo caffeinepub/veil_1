@@ -1012,12 +1012,14 @@ function SettingsPanel({
   onClose,
   onProfileChange,
   onSettingsChange,
+  onOpenNotificationSettings,
 }: {
   profile: ProfileData;
   settings: VeilSettings;
   onClose: () => void;
   onProfileChange: (data: Partial<ProfileData>) => void;
   onSettingsChange: (data: Partial<VeilSettings>) => void;
+  onOpenNotificationSettings?: () => void;
 }) {
   const [deleteStep, setDeleteStep] = useState(0);
   const [sigRegen, setSigRegen] = useState(0);
@@ -1581,6 +1583,24 @@ function SettingsPanel({
                 </div>
               </AccordionTrigger>
               <AccordionContent className="pb-4">
+                {onOpenNotificationSettings && (
+                  <button
+                    type="button"
+                    data-ocid="settings.notification_settings.button"
+                    onClick={() => {
+                      onOpenNotificationSettings();
+                    }}
+                    className="w-full flex items-center justify-between py-3 px-4 rounded-xl mb-3 text-sm transition-all hover:opacity-80"
+                    style={{
+                      background: "rgba(244,194,138,0.12)",
+                      border: "1px solid rgba(244,194,138,0.25)",
+                      color: "#F4C28A",
+                    }}
+                  >
+                    <span>Notification types and quiet mode</span>
+                    <span style={{ opacity: 0.6 }}>→</span>
+                  </button>
+                )}
                 <ToggleRow
                   id="push-master"
                   label="Push Notifications"
@@ -2623,9 +2643,13 @@ export interface ProfileTabProps {
   onNavigate: (
     tab: "home" | "write" | "journal" | "reflections" | "profile",
   ) => void;
+  onOpenNotificationSettings?: () => void;
 }
 
-export function ProfileTab({ onNavigate }: ProfileTabProps) {
+export function ProfileTab({
+  onNavigate,
+  onOpenNotificationSettings,
+}: ProfileTabProps) {
   const [profile, setProfile] = useState<ProfileData>(loadProfileData);
   const [settings, setSettings] = useState<VeilSettings>(loadSettings);
   const [innerCircle] = useState<InnerCircleMember[]>(loadInnerCircle);
@@ -3281,6 +3305,7 @@ export function ProfileTab({ onNavigate }: ProfileTabProps) {
               onClose={() => setShowSettings(false)}
               onProfileChange={updateProfile}
               onSettingsChange={updateSettings}
+              onOpenNotificationSettings={onOpenNotificationSettings}
             />
           </motion.div>
         )}

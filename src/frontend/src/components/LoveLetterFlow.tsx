@@ -1,5 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useVeilVoice } from "../contexts/VeilVoiceContext";
+import {
+  type FeedbackBackground,
+  WRITE_FEEDBACK,
+} from "../lib/emotionalFeedbackCopy";
+import { EmotionalFeedbackOverlay } from "./EmotionalFeedbackOverlay";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -338,6 +343,11 @@ export function LoveLetterFlow({
     () => closureMessages[Math.floor(Math.random() * closureMessages.length)],
   );
   const [showSupportResources, setShowSupportResources] = useState(false);
+  const [feedbackOverlay, setFeedbackOverlay] = useState<{
+    lines: string[];
+    background: FeedbackBackground;
+    onDismiss: () => void;
+  } | null>(null);
 
   // Word count
   const totalWords = countWords(
@@ -1151,7 +1161,17 @@ export function LoveLetterFlow({
             type="button"
             onClick={() => {
               setTimeout(() => triggerMoment("ll_b"), 600);
-              onSaved();
+              const isSelf = lt === "SELF";
+              setFeedbackOverlay({
+                lines: isSelf
+                  ? WRITE_FEEDBACK.self_love
+                  : WRITE_FEEDBACK.love_letter_kept,
+                background: "default",
+                onDismiss: () => {
+                  setFeedbackOverlay(null);
+                  onSaved();
+                },
+              });
             }}
             aria-label="Keep it private instead"
             className="w-full bg-white text-veil-text rounded-2xl py-3.5 text-sm font-medium shadow-soft"
@@ -1185,7 +1205,19 @@ export function LoveLetterFlow({
           </p>
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => {
+              setFeedbackOverlay({
+                lines:
+                  lt === "SELF"
+                    ? WRITE_FEEDBACK.self_love
+                    : WRITE_FEEDBACK.love_letter_sent,
+                background: lt === "SELF" ? "default" : "warm-gold",
+                onDismiss: () => {
+                  setFeedbackOverlay(null);
+                  onClose();
+                },
+              });
+            }}
             aria-label="Close"
             className="mt-6 px-8 py-3 rounded-full text-sm font-medium"
             style={{ background: style.text, color: style.bg }}
@@ -1257,6 +1289,14 @@ export function LoveLetterFlow({
       {step === "delivery" && renderDelivery()}
       {step === "review" && renderReview()}
       {step === "closure" && renderClosure()}
+
+      {feedbackOverlay && (
+        <EmotionalFeedbackOverlay
+          lines={feedbackOverlay.lines}
+          background={feedbackOverlay.background}
+          onDismiss={feedbackOverlay.onDismiss}
+        />
+      )}
     </div>
   );
 }

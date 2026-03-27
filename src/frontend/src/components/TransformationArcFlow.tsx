@@ -2,7 +2,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { EmotionType } from "../lib/emotionDetection";
+import { ARC_FEEDBACK } from "../lib/emotionalFeedbackCopy";
 import type { EISettings } from "./EISettingsPanel";
+import { EmotionalFeedbackOverlay } from "./EmotionalFeedbackOverlay";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -803,6 +805,8 @@ function Phase4OneTrueThing({
   const [value, setValue] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
+  const [showOneTrueOverlay, setShowOneTrueOverlay] = useState(false);
+
   function handleSubmit() {
     if (!value.trim()) return;
     try {
@@ -815,7 +819,7 @@ function Phase4OneTrueThing({
       /* ignore */
     }
     setSubmitted(true);
-    setTimeout(onNext, 3000);
+    setShowOneTrueOverlay(true);
   }
 
   return (
@@ -909,6 +913,16 @@ function Phase4OneTrueThing({
           </p>
         </motion.div>
       )}
+      {showOneTrueOverlay && (
+        <EmotionalFeedbackOverlay
+          lines={ARC_FEEDBACK.one_true_thing}
+          background="default"
+          onDismiss={() => {
+            setShowOneTrueOverlay(false);
+            onNext();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -929,14 +943,12 @@ function Phase4Agency({
   >("pending");
   const reminderSet = useRef(false);
 
+  const [showAgencyOverlay, setShowAgencyOverlay] = useState(false);
+
   function handleSubmit() {
     if (!value.trim()) return;
     setSubmitted(true);
-    if (agencyReminder) {
-      // Show reminder choice
-    } else {
-      setTimeout(onNext, 4000);
-    }
+    setShowAgencyOverlay(true);
   }
 
   function handleReminder(yes: boolean) {
@@ -1085,6 +1097,20 @@ function Phase4Agency({
             </motion.div>
           )}
         </motion.div>
+      )}
+      {showAgencyOverlay && (
+        <EmotionalFeedbackOverlay
+          lines={ARC_FEEDBACK.agency_anchor}
+          background="default"
+          onDismiss={() => {
+            setShowAgencyOverlay(false);
+            if (agencyReminder) {
+              // Show reminder choice - already in submitted view
+            } else {
+              setTimeout(onNext, 100);
+            }
+          }}
+        />
       )}
     </div>
   );

@@ -1,13 +1,36 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useActor } from "../hooks/useActor";
 import { AuraWrapper } from "./AuraWrapper";
+import { BatchEndCard } from "./BatchEndCard";
 import { EmotionCard } from "./EmotionCard";
 import type { EmotionCardProps } from "./EmotionCard";
+// Layer 3
+import {
+  applyEmotionalBalance,
+  applyRecoveryInsertion,
+  emotionAuraColor,
+  emotionCategory,
+} from "./emotionalBalance";
+// Layer 2
+import {
+  applyGlobalModeration,
+  applySessionOverloadProtection,
+  detectUnansweredPosts,
+} from "./emotionalSafety";
+// Layer 1
+import {
+  FIRST_BATCH_SIZE,
+  type FeedPost,
+  type FeedSession,
+  SUBSEQUENT_BATCH_SIZE,
+  generateEmotionFeed,
+  getBatch,
+} from "./feedAlgorithm";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ───
 
 interface EmotionEntry {
   id: string;
@@ -40,9 +63,13 @@ interface FeedItem {
   kind: "own" | "inner_circle" | "friend" | "global" | "balance";
   data?: EmotionEntry | MockEntry;
   id: string;
+  // algorithm enrichment
+  supportUrgency?: boolean; // 0 reactions + DIFFICULT
+  carryingAwarenessActive?: boolean;
+  unansweredNudge?: string;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Constants ───
 
 const DIFFICULT = new Set([
   "stressed",
@@ -51,8 +78,21 @@ const DIFFICULT = new Set([
   "anxious",
   "lonely",
   "numb",
+  "overwhelmed",
+  "hurt",
+  "broken",
 ]);
-const POSITIVE = new Set(["grateful", "calm", "hopeful", "reflective"]);
+const POSITIVE = new Set([
+  "grateful",
+  "calm",
+  "hopeful",
+  "reflective",
+  "happy",
+  "peaceful",
+  "loved",
+  "relieved",
+  "elated",
+]);
 
 const VISIBILITY_OPTIONS: { value: Visibility; label: string; icon: string }[] =
   [
@@ -169,194 +209,60 @@ const MOCK_ENTRIES: MockEntry[] = [
   },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers ───
 
 function entryToDate(entry: EmotionEntry): Date {
   return new Date(Number(entry.createdAt) / 1_000_000);
 }
 
-function applyEmotionalBalance(items: FeedItem[]): FeedItem[] {
-  const result: FeedItem[] = [];
-  let consecutiveDifficult = 0;
-
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
-    const emotionType =
-      item.kind === "own"
-        ? (item.data as EmotionEntry)?.emotionType
-        : item.kind === "inner_circle" ||
-            item.kind === "friend" ||
-            item.kind === "global"
-          ? (item.data as MockEntry)?.emotionType
-          : undefined;
-
-    const isDifficult = emotionType ? DIFFICULT.has(emotionType) : false;
-
-    if (isDifficult) {
-      consecutiveDifficult++;
-      result.push(item);
-
-      if (consecutiveDifficult >= 3) {
-        let swapped = false;
-        for (let j = i + 1; j < items.length; j++) {
-          const ahead = items[j];
-          const aheadType =
-            ahead.kind === "own"
-              ? (ahead.data as EmotionEntry)?.emotionType
-              : (ahead.data as MockEntry)?.emotionType;
-          if (aheadType && POSITIVE.has(aheadType)) {
-            result.push(ahead);
-            items.splice(j, 1);
-            swapped = true;
-            break;
-          }
-        }
-        if (!swapped) {
-          result.push({ kind: "balance", id: `balance_${i}` });
-        }
-        consecutiveDifficult = 0;
-      }
-    } else {
-      consecutiveDifficult = 0;
-      result.push(item);
-    }
-  }
-
-  return result;
+function mockEntryToFeedPost(entry: MockEntry): FeedPost {
+  const relGroup =
+    entry.type === "inner_circle"
+      ? ("INNER_CIRCLE_COUSINS" as const)
+      : entry.type === "friend"
+        ? ("FRIENDS" as const)
+        : ("GLOBAL" as const);
+  return {
+    id: entry.id,
+    authorId: entry.id,
+    emotionType: entry.emotionType,
+    emotionLabel: entry.emotionLabel,
+    emoji: entry.emoji,
+    textReflection: entry.textReflection,
+    hasVoiceNote: false,
+    visibilityLevel:
+      entry.type === "global"
+        ? "GLOBAL"
+        : entry.type === "inner_circle"
+          ? "INNER_CIRCLE_COUSINS"
+          : "FRIENDS",
+    supportReactionCount: entry.hasReactions ? 2 : 0,
+    createdAt: entry.createdAt.getTime(),
+    relationshipGroup: relGroup,
+    isOwn: false,
+    emotionCategory: emotionCategory(entry.emotionType),
+  };
 }
 
-// ─── Breathing Exercise ───────────────────────────────────────────────────
-
-function BreathingExercise({ onClose }: { onClose: () => void }) {
-  const [phase, setPhase] = useState<"inhale" | "hold" | "exhale">("inhale");
-  const [seconds, setSeconds] = useState(30);
-  const prefersReduced = window.matchMedia(
-    "(prefers-reduced-motion: reduce)",
-  ).matches;
-
-  useEffect(() => {
-    const phases: Array<{
-      name: "inhale" | "hold" | "exhale";
-      duration: number;
-    }> = [
-      { name: "inhale", duration: 4000 },
-      { name: "hold", duration: 2000 },
-      { name: "exhale", duration: 4000 },
-    ];
-    let idx = 0;
-    const cyclePhase = () => {
-      idx = (idx + 1) % phases.length;
-      setPhase(phases[idx].name);
-      return phases[idx].duration;
-    };
-
-    let timeoutId: ReturnType<typeof setTimeout>;
-    const schedule = () => {
-      const dur = cyclePhase();
-      timeoutId = setTimeout(schedule, dur);
-    };
-    timeoutId = setTimeout(schedule, phases[0].duration);
-
-    const countdownId = setInterval(() => {
-      setSeconds((s) => {
-        if (s <= 1) {
-          clearInterval(countdownId);
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
-
-    return () => {
-      clearTimeout(timeoutId);
-      clearInterval(countdownId);
-    };
-  }, []);
-
-  const phaseText =
-    phase === "inhale"
-      ? "Breathe in..."
-      : phase === "hold"
-        ? "Hold..."
-        : "Breathe out...";
-
-  return (
-    <div className="py-6 flex flex-col items-center gap-5">
-      <div
-        className="relative flex items-center justify-center"
-        style={{ width: 120, height: 120 }}
-      >
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(201,184,232,0.2), rgba(168,197,160,0.1))",
-            transition: prefersReduced ? "none" : "transform 2s ease-in-out",
-            transform: phase === "exhale" ? "scale(0.9)" : "scale(1.15)",
-          }}
-        />
-        <div
-          className="rounded-full flex items-center justify-center"
-          style={{
-            width: 80,
-            height: 80,
-            background: "linear-gradient(135deg, #C9B8E8 0%, #A8C5A0 100%)",
-            transition: prefersReduced ? "none" : "transform 2s ease-in-out",
-            transform: phase === "exhale" ? "scale(0.85)" : "scale(1.2)",
-            boxShadow: "0 4px 20px rgba(107,91,142,0.2)",
-          }}
-        >
-          <span className="text-2xl">🌿</span>
-        </div>
-      </div>
-
-      <p
-        className="text-base font-medium text-center"
-        style={{ color: "#6B5B8E" }}
-      >
-        {phaseText}
-      </p>
-      {seconds > 0 && (
-        <p className="text-xs" style={{ color: "#8B8097" }}>
-          {seconds}s remaining
-        </p>
-      )}
-
-      <button
-        type="button"
-        onClick={onClose}
-        className="px-6 py-2.5 rounded-2xl text-sm font-semibold text-white transition-all duration-200 active:scale-95"
-        style={{
-          background: "linear-gradient(135deg, #6B5B8E 0%, #9B7FC0 100%)",
-        }}
-      >
-        I&apos;m ready
-      </button>
-    </div>
-  );
+function ownEntryToFeedPost(entry: EmotionEntry): FeedPost {
+  return {
+    id: entry.id,
+    authorId: "current_user",
+    emotionType: entry.emotionType,
+    emotionLabel: entry.emotionLabel,
+    emoji: entry.emoji,
+    textReflection: entry.textReflection,
+    hasVoiceNote: entry.voiceOverrideApplied && !entry.textReflection,
+    visibilityLevel: entry.visibilityLevel
+      .toUpperCase()
+      .replace(/ /g, "_") as FeedPost["visibilityLevel"],
+    supportReactionCount: 0,
+    createdAt: Number(entry.createdAt) / 1_000_000,
+    relationshipGroup: "OWN",
+    isOwn: true,
+    emotionCategory: emotionCategory(entry.emotionType),
+  };
 }
-
-// ─── Balance Card ─────────────────────────────────────────────────────────────────
-
-function BalanceCard() {
-  return (
-    <div
-      className="rounded-3xl p-5 flex items-start gap-3"
-      style={{
-        background:
-          "linear-gradient(135deg, rgba(168,197,160,0.2) 0%, rgba(201,184,232,0.2) 100%)",
-        border: "1px solid rgba(168,197,160,0.3)",
-      }}
-    >
-      <span className="text-xl mt-0.5">🌿</span>
-      <p className="text-sm font-medium" style={{ color: "#6B5B8E" }}>
-        Take a breath. You&apos;re not alone in this.
-      </p>
-    </div>
-  );
-}
-
-// ─── Mappers: EmotionEntry / MockEntry → EmotionCardProps ────────────────────────
 
 function ownEntryToCardProps(
   entry: EmotionEntry,
@@ -365,7 +271,6 @@ function ownEntryToCardProps(
   const date = entryToDate(entry);
   const ageHours = (Date.now() - date.getTime()) / 3600000;
   const isDifficult = DIFFICULT.has(entry.emotionType);
-
   return {
     emotion_id: entry.id,
     user_id: "current_user",
@@ -382,7 +287,7 @@ function ownEntryToCardProps(
     visibility:
       (entry.visibilityLevel.toUpperCase() as EmotionCardProps["visibility"]) ??
       "ONLY_ME",
-    created_at: date.toISOString(),
+    created_at: entryToDate(entry).toISOString(),
     current_user_reaction: null,
     reactions_exist: false,
     is_unanswered: isDifficult && ageHours > 4,
@@ -401,7 +306,6 @@ function mockEntryToCardProps(
       : entry.type === "friend"
         ? "FRIENDS"
         : "GLOBAL";
-
   return {
     emotion_id: entry.id,
     user_id: entry.id,
@@ -428,17 +332,190 @@ function mockEntryToCardProps(
   };
 }
 
-// ─── Main Component ─────────────────────────────────────────────────────────────────
+// ─── Breathing Exercise ───
+
+function BreathingExercise({ onClose }: { onClose: () => void }) {
+  const [phase, setPhase] = useState<"inhale" | "hold" | "exhale">("inhale");
+  const [seconds, setSeconds] = useState(30);
+  const prefersReduced =
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false;
+
+  useEffect(() => {
+    if (seconds <= 0) return;
+    const id = setInterval(() => setSeconds((s) => s - 1), 1000);
+    return () => clearInterval(id);
+  }, [seconds]);
+
+  useEffect(() => {
+    const cycle = ["inhale", "hold", "exhale"] as const;
+    let idx = 0;
+    const id = setInterval(() => {
+      idx = (idx + 1) % 3;
+      setPhase(cycle[idx]);
+    }, 4000);
+    return () => clearInterval(id);
+  }, []);
+
+  const phaseText =
+    phase === "inhale"
+      ? "Breathe in…"
+      : phase === "hold"
+        ? "Hold…"
+        : "Let it go…";
+
+  return (
+    <div className="flex flex-col items-center gap-5 py-2">
+      <div
+        className="w-20 h-20 rounded-full flex items-center justify-center"
+        style={{
+          background: "linear-gradient(135deg, #C9B8E8 0%, #A8C5A0 100%)",
+          transition: prefersReduced ? "none" : "transform 2s ease-in-out",
+          transform: phase === "exhale" ? "scale(0.85)" : "scale(1.2)",
+          boxShadow: "0 4px 20px rgba(107,91,142,0.2)",
+        }}
+      >
+        <span className="text-2xl">🌿</span>
+      </div>
+      <p
+        className="text-base font-medium text-center"
+        style={{ color: "#6B5B8E" }}
+      >
+        {phaseText}
+      </p>
+      {seconds > 0 && (
+        <p className="text-xs" style={{ color: "#8B8097" }}>
+          {seconds}s remaining
+        </p>
+      )}
+      <button
+        type="button"
+        onClick={onClose}
+        className="px-6 py-2.5 rounded-2xl text-sm font-semibold text-white transition-all duration-200 active:scale-95"
+        style={{
+          background: "linear-gradient(135deg, #6B5B8E 0%, #9B7FC0 100%)",
+        }}
+      >
+        I’m ready
+      </button>
+    </div>
+  );
+}
+
+// ─── Balance Card (used when no positive/neutral found) ───
+
+function BalanceCard() {
+  return (
+    <div
+      className="rounded-3xl p-5 flex items-start gap-3"
+      style={{
+        background:
+          "linear-gradient(135deg, rgba(168,197,160,0.2) 0%, rgba(201,184,232,0.2) 100%)",
+        border: "1px solid rgba(168,197,160,0.3)",
+      }}
+    >
+      <span className="text-xl mt-0.5">🌿</span>
+      <p className="text-sm font-medium" style={{ color: "#6B5B8E" }}>
+        Take a breath. You’re not alone in this.
+      </p>
+    </div>
+  );
+}
+
+// ─── Session Overload Notice (Layer 2) ───
+
+function SessionOverloadNotice({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <motion.div
+      data-ocid="feed.overload_notice.panel"
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.35 }}
+      className="mb-4 rounded-2xl px-5 py-4 flex items-start justify-between gap-3"
+      style={{
+        background:
+          "linear-gradient(135deg, rgba(195,184,216,0.2) 0%, rgba(184,196,212,0.2) 100%)",
+        border: "1px solid rgba(195,184,216,0.3)",
+      }}
+    >
+      <p className="text-sm leading-relaxed" style={{ color: "#2D2540" }}>
+        Your feed is gently adjusting — you’ve been carrying a lot today.
+      </p>
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Dismiss"
+        className="shrink-0 text-xs px-3 py-1.5 rounded-full transition-all"
+        style={{ color: "#8B8097", background: "rgba(195,184,216,0.2)" }}
+      >
+        ✕
+      </button>
+    </motion.div>
+  );
+}
+
+// ─── Carrying Awareness Badge (Layer 1 / EIE) ───
+
+function CarryingBadge() {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+      style={{ background: "rgba(195,184,216,0.25)", color: "#9B7FC0" }}
+      aria-label="Carrying this emotion"
+    >
+      Carrying this
+    </span>
+  );
+}
+
+// ─── Support Urgency Ring (Layer 1) ───
+// Wraps a card with a subtle amber ring for 0-reaction difficult posts
+function SupportUrgencyWrapper({
+  children,
+  active,
+}: { children: React.ReactNode; active: boolean }) {
+  if (!active) return <>{children}</>;
+  return (
+    <div
+      style={{
+        borderRadius: "1.5rem",
+        boxShadow:
+          "0 0 0 2px rgba(244,194,138,0.55), 0 2px 12px rgba(244,194,138,0.18)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ─── Main Component ───
 
 export function EmotionFeed({ onCheckIn }: { onCheckIn?: () => void }) {
   const { actor, isFetching } = useActor();
   const qc = useQueryClient();
   const feedTopRef = useRef<HTMLDivElement>(null);
 
+  // UI state
   const [heavyBannerDismissed, setHeavyBannerDismissed] = useState(false);
   const [showBreathing, setShowBreathing] = useState(false);
   const [showNewPostsBanner, setShowNewPostsBanner] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [overloadNoticeDismissed, setOverloadNoticeDismissed] = useState(false);
+
+  // Batch state (Layer 1)
+  const [batchNumber, setBatchNumber] = useState(0);
+  const [shownCount, setShownCount] = useState(FIRST_BATCH_SIZE);
+
+  // Session state (Layer 2)
+  const [session] = useState<FeedSession>(() => ({
+    sessionDifficultCount: 0,
+    sessionStart: Date.now(),
+    batchNumber: 0,
+    globalPostsShown: 0,
+    lastFeedGenerated: Date.now(),
+  }));
 
   // Aura environment detection
   const [colorMode, setColorMode] = useState<"light" | "dark">(() =>
@@ -496,38 +573,72 @@ export function EmotionFeed({ onCheckIn }: { onCheckIn?: () => void }) {
   );
   const showPositivePrompt = sortedOwn.length > 0 && !recentPositive;
 
+  // All algorithm pipeline + unanswered detection computed together
+  const { processedFeed, hasMore, unansweredIds } = useMemo(() => {
+    const ownFeedPosts = sortedOwn.map(ownEntryToFeedPost);
+    // Layer 2: unanswered post detection
+    const unanswered = detectUnansweredPosts(ownFeedPosts);
+    const unansweredSet = new Set(unanswered.map((u) => u.post.id));
+
+    // Full pipeline: Layers 1–3 applied in sequence
+    // Convert mock entries to FeedPosts
+    const mockFeedPosts: FeedPost[] = MOCK_ENTRIES.map(mockEntryToFeedPost);
+    const allPosts: FeedPost[] = [...ownFeedPosts, ...mockFeedPosts];
+
+    // Layer 2: Global moderation
+    const moderated = applyGlobalModeration(allPosts);
+
+    // Layer 1: Feed generation (priority + urgency ranking)
+    const { feed } = generateEmotionFeed("current_user", moderated, session, {
+      cousins: ["mock_ic_1", "mock_ic_2", "mock_ic_3"],
+      closestFriends: [],
+      friends: ["mock_fr_1", "mock_fr_2"],
+    });
+
+    // Layer 3: Recovery insertion (gentle interleaving)
+    const recovered = applyRecoveryInsertion(feed);
+
+    // Layer 3: Emotional balance (3-consecutive cap)
+    const balanced = applyEmotionalBalance(recovered);
+
+    // Layer 2: Session overload protection
+    // Count difficult posts in current balanced feed (for session protection)
+    const sessionDifficultCount = balanced.filter(
+      (p) => (p.emotionCategory ?? "NEUTRAL") === "DIFFICULT",
+    ).length;
+    const protected_ = applySessionOverloadProtection(
+      balanced,
+      session,
+      sessionDifficultCount,
+    );
+
+    // Get current batch
+    const { hasMore: more } = getBatch(protected_, batchNumber, 0);
+    const batchSize =
+      batchNumber === 0 ? FIRST_BATCH_SIZE : SUBSEQUENT_BATCH_SIZE;
+    const shown = protected_.slice(
+      0,
+      Math.min(shownCount, batchSize * (batchNumber + 1)),
+    );
+
+    return {
+      processedFeed: shown,
+      hasMore: more || shownCount < protected_.length,
+      unansweredIds: unansweredSet,
+    };
+  }, [sortedOwn, batchNumber, shownCount, session]);
+
   useEffect(() => {
     const id = setTimeout(() => setShowNewPostsBanner(true), 10000);
     return () => clearTimeout(id);
   }, []);
 
-  const ownItems: FeedItem[] = sortedOwn.map((e) => ({
-    kind: "own",
-    data: e,
-    id: e.id,
-  }));
-
-  const innerCircleItems: FeedItem[] = MOCK_ENTRIES.filter(
-    (e) => e.type === "inner_circle",
-  )
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .map((e) => ({ kind: "inner_circle", data: e, id: e.id }));
-
-  const friendItems: FeedItem[] = MOCK_ENTRIES.filter(
-    (e) => e.type === "friend",
-  )
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .map((e) => ({ kind: "friend", data: e, id: e.id }));
-
-  const globalItems: FeedItem[] = MOCK_ENTRIES.filter(
-    (e) => e.type === "global",
-  )
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .map((e) => ({ kind: "global", data: e, id: e.id }));
-
-  const rawFeed = [...innerCircleItems, ...friendItems, ...globalItems];
-  const balancedFeed = applyEmotionalBalance(rawFeed);
-  const fullFeed = [...ownItems, ...balancedFeed];
+  // Track difficult posts viewed in this session (derived, no effect needed)
+  const isOverloaded =
+    processedFeed.filter(
+      (p) =>
+        (p.emotionCategory ?? emotionCategory(p.emotionType)) === "DIFFICULT",
+    ).length >= 5;
 
   async function handleRefresh() {
     setIsRefreshing(true);
@@ -539,6 +650,52 @@ export function EmotionFeed({ onCheckIn }: { onCheckIn?: () => void }) {
     feedTopRef.current?.scrollIntoView({ behavior: "smooth" });
     setShowNewPostsBanner(false);
   }
+
+  function handleSeeMore() {
+    setBatchNumber((n) => n + 1);
+    setShownCount((c) => c + SUBSEQUENT_BATCH_SIZE);
+  }
+
+  function handlePutItDown() {
+    // Navigate to Quiet Moment / dismiss — scroll to top and show Veil is here message
+    scrollToTop();
+  }
+
+  // Convert FeedPost back to a render-able FeedItem with enrichment
+  function feedPostToItem(post: FeedPost): FeedItem {
+    const mockData = MOCK_ENTRIES.find((m) => m.id === post.id);
+    const ownData = sortedOwn.find((e) => e.id === post.id);
+    const kind = post.isOwn
+      ? "own"
+      : post.relationshipGroup === "GLOBAL"
+        ? "global"
+        : post.relationshipGroup.startsWith("INNER_CIRCLE")
+          ? "inner_circle"
+          : "friend";
+
+    return {
+      kind: kind as FeedItem["kind"],
+      data: ownData ?? mockData,
+      id: post.id,
+      supportUrgency:
+        post.supportReactionCount === 0 &&
+        (post.emotionCategory ?? emotionCategory(post.emotionType)) ===
+          "DIFFICULT",
+      carryingAwarenessActive: post.carryingAwarenessActive ?? false,
+      unansweredNudge: unansweredIds.has(post.id)
+        ? "No reactions yet — your feelings are still valid."
+        : undefined,
+    };
+  }
+
+  const feedItems: FeedItem[] = processedFeed.map((p) => feedPostToItem(p));
+  const showBatchEndCard = feedItems.length > 0 && !hasMore;
+  const reachedBatchEnd =
+    feedItems.length > 0 &&
+    feedItems.length >=
+      (batchNumber === 0
+        ? FIRST_BATCH_SIZE
+        : FIRST_BATCH_SIZE + batchNumber * SUBSEQUENT_BATCH_SIZE);
 
   return (
     <section className="px-5 pb-8" data-ocid="feed.section">
@@ -565,6 +722,7 @@ export function EmotionFeed({ onCheckIn }: { onCheckIn?: () => void }) {
         </button>
       </div>
 
+      {/* New posts banner */}
       <AnimatePresence>
         {showNewPostsBanner && (
           <motion.button
@@ -588,6 +746,16 @@ export function EmotionFeed({ onCheckIn }: { onCheckIn?: () => void }) {
         )}
       </AnimatePresence>
 
+      {/* Layer 2: Session overload notice */}
+      <AnimatePresence>
+        {isOverloaded && !overloadNoticeDismissed && (
+          <SessionOverloadNotice
+            onDismiss={() => setOverloadNoticeDismissed(true)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Heavy session breathing card */}
       <AnimatePresence>
         {isHeavySession && !heavyBannerDismissed && (
           <motion.div
@@ -607,10 +775,9 @@ export function EmotionFeed({ onCheckIn }: { onCheckIn?: () => void }) {
               className="text-sm font-medium mb-3"
               style={{ color: "#2D2540" }}
             >
-              You&apos;ve been carrying a lot lately. Take a moment for yourself
+              You’ve been carrying a lot lately. Take a moment for yourself
               today.
             </p>
-
             {showBreathing ? (
               <BreathingExercise onClose={() => setShowBreathing(false)} />
             ) : (
@@ -625,7 +792,7 @@ export function EmotionFeed({ onCheckIn }: { onCheckIn?: () => void }) {
                     color: "#8B8097",
                   }}
                 >
-                  I&apos;m okay, keep going
+                  I’m okay, keep going
                 </button>
                 <button
                   data-ocid="feed.primary_button"
@@ -645,6 +812,7 @@ export function EmotionFeed({ onCheckIn }: { onCheckIn?: () => void }) {
         )}
       </AnimatePresence>
 
+      {/* Positive check-in prompt */}
       {showPositivePrompt && (
         <motion.div
           data-ocid="feed.card"
@@ -676,7 +844,7 @@ export function EmotionFeed({ onCheckIn }: { onCheckIn?: () => void }) {
       )}
 
       <div className="flex flex-col gap-4">
-        {fullFeed.length === 0 ? (
+        {feedItems.length === 0 ? (
           <motion.div
             data-ocid="feed.empty_state"
             initial={{ opacity: 0 }}
@@ -714,7 +882,7 @@ export function EmotionFeed({ onCheckIn }: { onCheckIn?: () => void }) {
             </button>
           </motion.div>
         ) : (
-          fullFeed.map((item, i) => {
+          feedItems.map((item, i) => {
             if (item.kind === "balance") {
               return (
                 <motion.div
@@ -729,96 +897,144 @@ export function EmotionFeed({ onCheckIn }: { onCheckIn?: () => void }) {
             }
 
             if (item.kind === "own") {
-              const cardProps = ownEntryToCardProps(
-                item.data as EmotionEntry,
-                i,
-              );
+              const entryData = item.data as EmotionEntry;
+              if (!entryData) return null;
+              const cardProps = ownEntryToCardProps(entryData, i);
               return (
-                <AuraWrapper
+                <motion.div
                   key={item.id}
-                  emotion_type={cardProps.emotion_type}
-                  is_own_post={true}
-                  is_anonymous={false}
-                  color_mode={colorMode}
-                  reduce_motion={reduceMotion}
-                  high_contrast={highContrast}
-                  onReactionPulse={(trigger) =>
-                    pulseTriggersRef.current.set(item.id, trigger)
-                  }
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: i * 0.04 }}
                 >
-                  <EmotionCard
-                    {...cardProps}
-                    onReact={(id, reaction) => {
-                      pulseTriggersRef.current.get(item.id)?.();
-                      cardProps.onReact?.(id, reaction);
-                    }}
-                  />
-                </AuraWrapper>
+                  {/* Layer 2: Unanswered nudge */}
+                  {item.unansweredNudge && (
+                    <p
+                      className="text-xs font-medium mb-1.5 px-1"
+                      style={{ color: "#9B7FC0" }}
+                    >
+                      {item.unansweredNudge}
+                    </p>
+                  )}
+                  {/* Layer 1: Carrying awareness badge */}
+                  {item.carryingAwarenessActive && (
+                    <div className="mb-1.5 px-1">
+                      <CarryingBadge />
+                    </div>
+                  )}
+                  {/* Layer 1: Support urgency ring for 0-reaction difficult posts */}
+                  <SupportUrgencyWrapper active={!!item.supportUrgency}>
+                    <AuraWrapper
+                      emotion_type={cardProps.emotion_type}
+                      is_own_post={true}
+                      is_anonymous={false}
+                      color_mode={colorMode}
+                      reduce_motion={reduceMotion}
+                      high_contrast={highContrast}
+                      onReactionPulse={(trigger) =>
+                        pulseTriggersRef.current.set(item.id, trigger)
+                      }
+                    >
+                      <EmotionCard
+                        {...cardProps}
+                        onReact={(id, reaction) => {
+                          pulseTriggersRef.current.get(item.id)?.();
+                          cardProps.onReact?.(id, reaction);
+                        }}
+                      />
+                    </AuraWrapper>
+                  </SupportUrgencyWrapper>
+                </motion.div>
               );
             }
 
             if (item.kind === "inner_circle" || item.kind === "friend") {
-              const cardProps = mockEntryToCardProps(
-                item.data as MockEntry,
-                i,
-                false,
-              );
+              const mockData = item.data as MockEntry;
+              if (!mockData) return null;
+              const cardProps = mockEntryToCardProps(mockData, i, false);
               return (
-                <AuraWrapper
+                <motion.div
                   key={item.id}
-                  emotion_type={cardProps.emotion_type}
-                  is_own_post={false}
-                  is_anonymous={false}
-                  color_mode={colorMode}
-                  reduce_motion={reduceMotion}
-                  high_contrast={highContrast}
-                  onReactionPulse={(trigger) =>
-                    pulseTriggersRef.current.set(item.id, trigger)
-                  }
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: i * 0.04 }}
                 >
-                  <EmotionCard
-                    {...cardProps}
-                    onReact={(id, reaction) => {
-                      pulseTriggersRef.current.get(item.id)?.();
-                      cardProps.onReact?.(id, reaction);
-                    }}
-                  />
-                </AuraWrapper>
+                  {item.carryingAwarenessActive && (
+                    <div className="mb-1.5 px-1">
+                      <CarryingBadge />
+                    </div>
+                  )}
+                  <SupportUrgencyWrapper active={!!item.supportUrgency}>
+                    <AuraWrapper
+                      emotion_type={cardProps.emotion_type}
+                      is_own_post={false}
+                      is_anonymous={false}
+                      color_mode={colorMode}
+                      reduce_motion={reduceMotion}
+                      high_contrast={highContrast}
+                      onReactionPulse={(trigger) =>
+                        pulseTriggersRef.current.set(item.id, trigger)
+                      }
+                    >
+                      <EmotionCard
+                        {...cardProps}
+                        onReact={(id, reaction) => {
+                          pulseTriggersRef.current.get(item.id)?.();
+                          cardProps.onReact?.(id, reaction);
+                        }}
+                      />
+                    </AuraWrapper>
+                  </SupportUrgencyWrapper>
+                </motion.div>
               );
             }
 
             if (item.kind === "global") {
-              const cardProps = mockEntryToCardProps(
-                item.data as MockEntry,
-                i,
-                true,
-              );
+              const mockData = item.data as MockEntry;
+              if (!mockData) return null;
+              const cardProps = mockEntryToCardProps(mockData, i, true);
               return (
-                <AuraWrapper
+                <motion.div
                   key={item.id}
-                  emotion_type={cardProps.emotion_type}
-                  is_own_post={false}
-                  is_anonymous={true}
-                  color_mode={colorMode}
-                  reduce_motion={reduceMotion}
-                  high_contrast={highContrast}
-                  onReactionPulse={(trigger) =>
-                    pulseTriggersRef.current.set(item.id, trigger)
-                  }
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: i * 0.04 }}
                 >
-                  <EmotionCard
-                    {...cardProps}
-                    onReact={(id, reaction) => {
-                      pulseTriggersRef.current.get(item.id)?.();
-                      cardProps.onReact?.(id, reaction);
-                    }}
-                  />
-                </AuraWrapper>
+                  <SupportUrgencyWrapper active={!!item.supportUrgency}>
+                    <AuraWrapper
+                      emotion_type={cardProps.emotion_type}
+                      is_own_post={false}
+                      is_anonymous={true}
+                      color_mode={colorMode}
+                      reduce_motion={reduceMotion}
+                      high_contrast={highContrast}
+                      onReactionPulse={(trigger) =>
+                        pulseTriggersRef.current.set(item.id, trigger)
+                      }
+                    >
+                      <EmotionCard
+                        {...cardProps}
+                        onReact={(id, reaction) => {
+                          pulseTriggersRef.current.get(item.id)?.();
+                          cardProps.onReact?.(id, reaction);
+                        }}
+                      />
+                    </AuraWrapper>
+                  </SupportUrgencyWrapper>
+                </motion.div>
               );
             }
 
             return null;
           })
+        )}
+
+        {/* Batch End Card (Layer 1) — after each batch */}
+        {(reachedBatchEnd || showBatchEndCard) && feedItems.length > 0 && (
+          <BatchEndCard
+            onSeeMore={handleSeeMore}
+            onPutItDown={handlePutItDown}
+          />
         )}
       </div>
     </section>

@@ -165,11 +165,13 @@ function drawWaveframe(
 
 export function CompanionCard({
   onDumpComplete,
+  onExpressVisually,
 }: {
   onDumpComplete?: (
     textContent: string | null,
     dumpType: "voice" | "text",
   ) => void;
+  onExpressVisually?: () => void;
 } = {}) {
   const { actor, isFetching } = useActor();
   const qc = useQueryClient();
@@ -651,6 +653,28 @@ export function CompanionCard({
               >
                 I'm ready to go
               </motion.button>
+              {onExpressVisually && (
+                <motion.button
+                  type="button"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 5, duration: 0.6 }}
+                  onClick={onExpressVisually}
+                  style={{
+                    marginTop: 16,
+                    background: "none",
+                    border: "none",
+                    color: "rgba(140,120,170,0.55)",
+                    fontSize: 13,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    letterSpacing: "0.04em",
+                    padding: "8px",
+                  }}
+                >
+                  Express this visually →
+                </motion.button>
+              )}
             </div>
           </motion.div>
         )}

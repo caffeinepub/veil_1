@@ -1,63 +1,42 @@
-# Veil — Emotional Compass (Unified System) v2.0
+# Veil — Visual Expression Layer v2.0
 
 ## Current State
 
-ReflectionsTab.tsx contains a compassEngine reference and a placeholder Compass section. ProfileTab.tsx contains an Emotional Compass Preview card. Neither has a full, implemented Emotional Compass with:
-- A visual compass rose with animated needle
-- Four directional zones (N/S/E/W) with zone colors
-- 12-month history strip with tappable mini-compass icons
-- Layer 2 four dimension cards (Reflection, Connection, Growth, Meaning)
-- Direction-specific narratives for all 8 needle positions
-- Empty state (< 14 days data) with pulsing needle
-- Proper voice system integration moments
+Veil v25 has all core systems live: Home (Check-In, Companion Card, Emotion Feed), Write Tab (Love Letters, Apologies, Confessions, Journaling), My Journal (book metaphor, seasonal navigation, depth additions), Reflections Tab (Compass, Growth Narrative, Memory Resurfacing), Profile Tab, Unified Algorithm System, Retention Engine, Notification System, and Emotional Feedback System.
+
+There is currently no visual/canvas-based emotional expression feature.
 
 ## Requested Changes (Diff)
 
 ### Add
-- `EmotionalCompass.tsx` — full Compass screen component
-  - SVG compass rose, hand-drawn aesthetic, animated needle
-  - Four zone coloring (N: #F9E4A0, S: #C3B8D8, E: #F4C28A, W: #B8C4D4)
-  - Needle sweeps to direction (8 positions) with reduced-motion support
-  - Narrative text block (italic serif) for all 8 directions
-  - 12-month history strip: 12 mini compass icons, tappable to expand month detail
-  - "Reflect on your direction →" CTA
-  - Layer 2: four dimension cards stacked vertically
-    - Reflection (🌊), Connection (🌿), Growth (🌱), Meaning (✦)
-    - Connection card split into Giving + Receiving sections
-    - Each with directional observation (multiple states) and CTA
-  - Empty state: pulsing compass rose, no needle, instructional text
-  - Dimension cards appear progressively as data accumulates
-  - Screen reader aria labels for needle direction + narrative
-  - High contrast mode support
-- `compassData.ts` — mock UEDL data layer and compass calculation logic
-  - Emotion-to-zone mapping (N/S/E/W)
-  - `calculateNeedleDirection()` from last 30 days UEDL
-  - `calculateDimensionDirection()` for each of the 4 dimensions
-  - Narrative lookup tables for all states
-  - 12-month historical state mock data
+- `VisualExpressionCanvas.tsx` — Full-screen SVG canvas with emotion-mapped shapes, tap/drag/long-press interactions, real-time energy mirroring, 50-shape cap with fade, Start Over + Save buttons
+- `VisualExpressionFirstTime.tsx` — First-time overlay: full-screen emotion aura background, centered serif text, fades on tap or after 3s
+- `AISnapshotOptIn.tsx` — Privacy opt-in modal before first AI snapshot generation
+- `VisualSnapshotResult.tsx` — After save: shows "What you made" + "What Veil made" side-by-side with Veil voice line
+- `VisualStoryGallery.tsx` — Reflections section showing grid of saved visuals after 5+ entries, Veil observation line
+- `visualExpressionState.ts` — localStorage-backed state: has used before, AI snapshot consent, saved visuals list
+- `emotionShapes.ts` — Emotion-to-shape/motion mapping for all 11 emotion types
 
 ### Modify
-- `ReflectionsTab.tsx` — replace/wire existing compass section to open `EmotionalCompass.tsx` as a full-screen modal or nested view from "Your Direction" card
-- `ProfileTab.tsx` — replace existing compass preview card with proper compact card showing needle direction + one narrative line + "See your full direction →" link that navigates to Reflections tab compass view
+- `QuietMomentScreen.tsx` — Add "Express visually →" soft link below content (entry point from Check-In)
+- `CompanionCard.tsx` — Add "Express this visually →" soft link in RELEASED state (only shown if user has used feature before)
+- `App.tsx` — Add `showVisualCanvas` state, import and render `VisualExpressionCanvas` as a full-screen overlay layer; pass `onExpressVisually` through to entry point components
+- `MyJournalTab.tsx` — Render visual journal pages for saved visual entries with full artwork layout
+- `ReflectionsTab.tsx` — Add "Your Visual Story" section after 5+ visual entries
+- `WriteTab` (in App.tsx) — Add "Add visual layer →" optional link in journal entry creation
 
 ### Remove
-- Any duplicate compass score/percentage UI that may exist in the current Compass section
+Nothing removed.
 
 ## Implementation Plan
 
-1. Create `compassData.ts` with zone mappings, narrative lookup, dimension calculation logic, and mock 12-month history data
-2. Create `EmotionalCompass.tsx`:
-   - SVG compass rose with hand-drawn style (slightly rough strokes, warm tones)
-   - Animated needle via CSS transform rotate, respects `prefers-reduced-motion`
-   - Zone arcs colored N/S/E/W with 15% opacity fill on active zone
-   - Narrative block: italic serif (InstrumentSerif-Italic), warm dark #2A1A0A
-   - 12-month history strip below compass — 12 small SVG compass icons in a horizontal scroll
-   - Tapping a month icon shows an expanded popover with that month's narrative
-   - "Reflect on your direction →" button (min 48×48px)
-   - Four dimension cards with title, icon, observation text, CTA
-   - Connection card: two sub-sections (Giving / Receiving) never combined
-   - Empty state: needle absent, compass pulses softly, instructional copy
-   - Progressive card reveal based on mock data flags
-3. Wire `ReflectionsTab.tsx` — "Your Direction" card tap opens EmotionalCompass as full screen
-4. Wire `ProfileTab.tsx` — compact preview card with mini needle illustration and single narrative line, tap navigates to Reflections/Compass
-5. Validate (lint + typecheck + build)
+1. **`emotionShapes.ts`** — Define EmotionShape config for all 11 emotions: color (aura hex), shapeFn (SVG path generator), motionType (pulse/drift/tremor/push/rotate/rise/wave/radiate/still), interactionMode (stressed=repel, calm=blend, sad=drift-separate)
+2. **`visualExpressionState.ts`** — localStorage helpers: `hasUsedVisualCanvas()`, `getAISnapshotConsent()`, `setAISnapshotConsent()`, `saveVisualEntry()`, `getVisualEntries()`
+3. **`VisualExpressionFirstTime.tsx`** — Emotion aura background fill, centered serif quote, 3s auto-fade or tap-to-proceed
+4. **`VisualExpressionCanvas.tsx`** — Core canvas: SVG-based, pointer events for tap/drag/long-press, max 50 shapes with oldest-fade logic, per-emotion shape rendering, energy level state (tap frequency → intensity), "Start over" bottom-left ghost button, "Save" bottom-right button, accessibility aria-label
+5. **`AISnapshotOptIn.tsx`** — Privacy-first modal: exact spec copy, Yes/No buttons, saves consent to localStorage
+6. **`VisualSnapshotResult.tsx`** — Two-panel display: user canvas thumbnail + procedurally generated AI snapshot (CSS-based abstract art), Veil voice line
+7. **Wire entry points** in `QuietMomentScreen`, `CompanionCard` (RELEASED state), and Write Tab journal flow
+8. **`VisualStoryGallery.tsx`** — Grid of visual thumbnails, tap to open journal page, Veil observation line
+9. **App.tsx** — Add visual canvas overlay state, connect all entry points
+10. **Journal visual pages** — In `MyJournalTab.tsx`, detect `entry_type === 'VISUAL'` and render artwork layout

@@ -1,25 +1,11 @@
 import { Toaster } from "@/components/ui/sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  BookHeart,
-  BookOpen,
-  Check,
-  Flame,
-  Home,
-  Loader2,
-  PenLine,
-  Pencil,
-  Sparkles,
-  Trash2,
-  User,
-  X,
-} from "lucide-react";
+import { Bell, BookHeart, Loader2 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
-import type { JournalEntry, Reflection, Stats, UserProfile } from "./backend";
-import type { ApologyEntry, ApologySchedule } from "./backend";
+import type { JournalEntry, UserProfile } from "./backend";
 import { ApologyCreationFlow } from "./components/ApologyCreationFlow";
 import { CelebrationFlow, HardDayDelivery } from "./components/CelebrationFlow";
 import { CompanionCard } from "./components/CompanionCard";
@@ -28,8 +14,13 @@ import { EIConsentModal } from "./components/EIConsentModal";
 import { EISettingsPanel, getEISettings } from "./components/EISettingsPanel";
 import { EmotionCheckIn } from "./components/EmotionCheckIn";
 import { EmotionFeed } from "./components/EmotionFeed";
+import { EmotionalFeedbackOverlay } from "./components/EmotionalFeedbackOverlay";
+import { GentleReentryCard } from "./components/GentleReentryCard";
 import { LoveLetterFlow } from "./components/LoveLetterFlow";
 import MyJournalTab from "./components/MyJournalTab";
+import { NotificationCenter } from "./components/NotificationCenter";
+import { NotificationPermissionModal } from "./components/NotificationPermissionModal";
+import { NotificationSettingsPanel } from "./components/NotificationSettingsPanel";
 import { ProfileTab } from "./components/ProfileTab";
 import {
   QuickReleaseOnboarding,
@@ -40,19 +31,32 @@ import { QuickReleaseSettings } from "./components/QuickReleaseSettings";
 import { QuietMomentScreen } from "./components/QuietMomentScreen";
 import { ReceiverApologyView } from "./components/ReceiverApologyView";
 import { ReflectionsTab } from "./components/ReflectionsTab";
+import { StillWithYouCard } from "./components/StillWithYouCard";
 import { TransformationArcFlow } from "./components/TransformationArcFlow";
 import { VeilVoiceOverlay } from "./components/VeilVoiceOverlay";
+import { VisualExpressionCanvas } from "./components/VisualExpressionCanvas";
 import { VoiceOnboarding } from "./components/VoiceOnboarding";
 import { VoiceSettingsPanel } from "./components/VoiceSettingsPanel";
 import { VeilVoiceProvider } from "./contexts/VeilVoiceContext";
 import { useActor } from "./hooks/useActor";
 import { detectEmotion } from "./lib/emotionDetection";
 import type { EmotionType } from "./lib/emotionDetection";
+import { WRITE_FEEDBACK } from "./lib/emotionalFeedbackCopy";
+import {
+  evaluateRetentionSurface,
+  markItemDismissed,
+} from "./lib/notificationOrchestrator";
 import { classifyPositiveEmotion } from "./lib/positiveEmotionDetection";
 import type {
   MilestoneLevel,
   PositiveEmotionType,
 } from "./lib/positiveEmotionDetection";
+import {
+  RetentionStateProvider,
+  useRetentionState,
+} from "./lib/retentionState";
+import type { RetentionUserState } from "./lib/retentionState";
+import { hasUsedVisualCanvas } from "./lib/visualExpressionState";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -164,8 +168,15 @@ function HomeTab({
   entries,
   onPostSuccess,
   onDumpComplete,
+  retentionState,
+  onStillWithYouSeeIt,
+  onStillWithYouNotYet,
+  showPeaceMessage,
+  onExpressVisually,
+  onOpenNotifications,
 }: {
   onNavigate: (tab: Tab) => void;
+  onOpenNotifications?: () => void;
   profile: UserProfile | null | undefined;
   entries: JournalEntry[] | undefined;
   onPostSuccess?: (data: {
@@ -180,6 +191,11 @@ function HomeTab({
     textContent: string | null,
     dumpType: "voice" | "text",
   ) => void;
+  onExpressVisually?: (emotionType: string, emotionLabel: string) => void;
+  retentionState?: RetentionUserState;
+  onStillWithYouSeeIt?: () => void;
+  onStillWithYouNotYet?: () => void;
+  showPeaceMessage?: boolean;
 }) {
   const quote = todayQuote();
   const name = profile?.displayName;
@@ -192,7 +208,7 @@ function HomeTab({
     <div className="animate-fade-in pb-6">
       {/* Header gradient */}
       <div
-        className="rounded-b-3xl px-6 pt-12 pb-8 mb-6"
+        className="relative rounded-b-3xl px-6 pt-12 pb-8 mb-6"
         style={{
           background: "linear-gradient(135deg, #C9B8E8 0%, #F2B5C5 100%)",
         }}
@@ -206,10 +222,54 @@ function HomeTab({
         <p className="text-sm text-veil-text/70 mt-1">
           How are you feeling today?
         </p>
+        {/* Bell icon */}
+        <button
+          type="button"
+          data-ocid="home.notification_center.open_modal_button"
+          onClick={onOpenNotifications}
+          className="absolute top-12 right-6 flex items-center justify-center rounded-full transition-opacity hover:opacity-70"
+          style={{
+            width: 40,
+            height: 40,
+            background: "rgba(255,255,255,0.22)",
+            color: "#1A1720",
+          }}
+          aria-label="Open notification center"
+        >
+          <Bell size={18} />
+        </button>
       </div>
 
+      {/* Still With You — Retention Engine surface, above CompanionCard */}
+      {retentionState &&
+        (() => {
+          const surface = evaluateRetentionSurface(retentionState);
+          const shouldShow = surface.showStillWithYou || showPeaceMessage;
+          if (!shouldShow) return null;
+          return (
+            <div className="px-5 mb-4">
+              <StillWithYouCard
+                pendingItemType={surface.pendingItemType}
+                onSeeIt={onStillWithYouSeeIt ?? (() => {})}
+                onNotYet={onStillWithYouNotYet ?? (() => {})}
+                showPeaceMessage={showPeaceMessage ?? false}
+              />
+            </div>
+          );
+        })()}
+
       {/* Companion Card — emotional release feature */}
-      <CompanionCard onDumpComplete={onDumpComplete} />
+      <CompanionCard
+        onDumpComplete={onDumpComplete}
+        onExpressVisually={
+          onExpressVisually
+            ? () => {
+                // Express with the most recent emotion; fallback to custom
+                onExpressVisually("custom", "Your feeling");
+              }
+            : undefined
+        }
+      />
 
       {/* Emotion Check-In — Component 2 */}
       <EmotionCheckIn onPostSuccess={onPostSuccess} />
@@ -352,7 +412,13 @@ function getTimeOfDay(): string {
 
 // ─── Tab: Write ───────────────────────────────────────────────────────────────
 
-function WriteTab({ onSaved }: { onSaved: () => void }) {
+function WriteTab({
+  onSaved,
+  onExpressVisually,
+}: {
+  onSaved: () => void;
+  onExpressVisually?: (type: string, label: string) => void;
+}) {
   const { actor } = useActor();
   const qc = useQueryClient();
   const [selectedMood, setSelectedMood] = useState("");
@@ -361,6 +427,10 @@ function WriteTab({ onSaved }: { onSaved: () => void }) {
   const [showApologyFlow, setShowApologyFlow] = useState(false);
   const [showLoveLetterFlow, setShowLoveLetterFlow] = useState(false);
   const [showConfessFlow, setShowConfessFlow] = useState(false);
+  const [showJournalFeedback, setShowJournalFeedback] = useState(false);
+  const [journalFeedbackLines, setJournalFeedbackLines] = useState<string[]>(
+    [],
+  );
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -371,10 +441,27 @@ function WriteTab({ onSaved }: { onSaved: () => void }) {
       qc.invalidateQueries({ queryKey: ["entries"] });
       qc.invalidateQueries({ queryKey: ["stats"] });
       toast.success("Entry saved 🌿");
+      const positiveKeys = [
+        "calm",
+        "happy",
+        "grateful",
+        "hopeful",
+        "loved",
+        "peaceful",
+        "elated",
+      ];
+      const isPositive = positiveKeys.some((k) =>
+        selectedMood.toLowerCase().includes(k),
+      );
+      setJournalFeedbackLines(
+        isPositive
+          ? WRITE_FEEDBACK.journal_positive
+          : WRITE_FEEDBACK.journal_negative,
+      );
+      setShowJournalFeedback(true);
       setTitle("");
       setBody("");
       setSelectedMood("");
-      onSaved();
     },
     onError: () => toast.error("Failed to save entry"),
   });
@@ -422,6 +509,16 @@ function WriteTab({ onSaved }: { onSaved: () => void }) {
           </div>
         </button>
       </div>
+      {showJournalFeedback && (
+        <EmotionalFeedbackOverlay
+          lines={journalFeedbackLines}
+          background="default"
+          onDismiss={() => {
+            setShowJournalFeedback(false);
+            onSaved();
+          }}
+        />
+      )}
       {showConfessFlow && (
         <ConfessFlow
           onClose={() => setShowConfessFlow(false)}
@@ -470,7 +567,7 @@ function WriteTab({ onSaved }: { onSaved: () => void }) {
               Write an Apology
             </div>
             <p className="text-veil-muted text-sm">
-              Say what you’ve been carrying.
+              Say what you've been carrying.
             </p>
           </div>
         </button>
@@ -554,12 +651,41 @@ function WriteTab({ onSaved }: { onSaved: () => void }) {
             Saving your thoughts...
           </div>
         )}
+
+        {/* Add visual layer entry point */}
+        {onExpressVisually && (
+          <button
+            type="button"
+            onClick={() =>
+              onExpressVisually(
+                selectedMood || "custom",
+                selectedMood || "Your feeling",
+              )
+            }
+            style={{
+              display: "block",
+              width: "100%",
+              background: "none",
+              border: "none",
+              color: "rgba(107,91,142,0.5)",
+              fontSize: 13,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              letterSpacing: "0.04em",
+              padding: "12px",
+              textAlign: "center",
+              marginTop: 4,
+            }}
+          >
+            Add visual layer →
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-// ─── Tab: My Journal ──────────────────────────────────────────────────────────
+// ─── Nav ──────────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS: { key: Tab; icon: React.ReactElement; label: string }[] = [
   { key: "home", icon: <span className="text-xl">🏠</span>, label: "Home" },
@@ -631,10 +757,12 @@ function BottomNav({
   );
 }
 
-// ─── App Shell ────────────────────────────────────────────────────────────────
+// ─── App Inner (consumes RetentionStateProvider) ──────────────────────────────
 
-export default function App() {
+function AppInner() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
+  const [retentionState, setRetentionState] = useRetentionState();
+  const [showPeaceMessage, setShowPeaceMessage] = useState(false);
   const [showQuickRelease, setShowQuickRelease] = useState(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -643,6 +771,8 @@ export default function App() {
     return false;
   });
   const [showQROnboarding, setShowQROnboarding] = useState(false);
+  const [showNotifCenter, setShowNotifCenter] = useState(false);
+  const [showNotifSettings, setShowNotifSettings] = useState(false);
   const [eiConsentPending, setEiConsentPending] = useState(false);
   const [eiArcData, setEiArcData] = useState<{
     emotionType: EmotionType;
@@ -668,6 +798,32 @@ export default function App() {
     typeof window !== "undefined"
       ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
       : false;
+
+  const [visualCanvas, setVisualCanvas] = useState<{
+    emotionType: string;
+    emotionLabel: string;
+  } | null>(null);
+  function openVisualCanvas(type: string, label: string) {
+    setVisualCanvas({ emotionType: type, emotionLabel: label });
+  }
+
+  // Retention Engine handlers
+  function handleStillWithYouSeeIt() {
+    setActiveTab("write");
+  }
+
+  function handleStillWithYouNotYet() {
+    const surface = evaluateRetentionSurface(retentionState);
+    if (!surface.pendingItemType) return;
+    const next = markItemDismissed(retentionState, surface.pendingItemType);
+    setRetentionState(next);
+    // If no more items after dismissal, show brief peace message
+    const nextSurface = evaluateRetentionSurface(next);
+    if (!nextSurface.showStillWithYou) {
+      setShowPeaceMessage(true);
+      setTimeout(() => setShowPeaceMessage(false), 3500);
+    }
+  }
 
   const handlePostSuccess = (data: {
     emotion_type: string;
@@ -698,6 +854,7 @@ export default function App() {
       visibility: visMap[data.visibility.toLowerCase()] ?? "ONLY_ME",
     });
   };
+
   const { actor, isFetching } = useActor();
 
   const { data: profile } = useQuery<UserProfile | null>({
@@ -801,15 +958,27 @@ export default function App() {
                 entries={entries}
                 onPostSuccess={handlePostSuccess}
                 onDumpComplete={handleDumpComplete}
+                retentionState={retentionState}
+                onStillWithYouSeeIt={handleStillWithYouSeeIt}
+                onStillWithYouNotYet={handleStillWithYouNotYet}
+                showPeaceMessage={showPeaceMessage}
+                onOpenNotifications={() => setShowNotifCenter(true)}
+                onExpressVisually={openVisualCanvas}
               />
             )}
             {activeTab === "write" && (
-              <WriteTab onSaved={() => setActiveTab("journal")} />
+              <WriteTab
+                onSaved={() => setActiveTab("journal")}
+                onExpressVisually={openVisualCanvas}
+              />
             )}
             {activeTab === "journal" && <MyJournalTab />}
             {activeTab === "reflections" && <ReflectionsTab />}
             {activeTab === "profile" && (
-              <ProfileTab onNavigate={setActiveTab} />
+              <ProfileTab
+                onNavigate={setActiveTab}
+                onOpenNotificationSettings={() => setShowNotifSettings(true)}
+              />
             )}
           </main>
 
@@ -821,6 +990,23 @@ export default function App() {
               emotion_emoji={quietMoment.emotion_emoji}
               visibility={quietMoment.visibility}
               onDismiss={() => setQuietMoment(null)}
+              onExpressVisually={() => {
+                setQuietMoment(null);
+                openVisualCanvas(
+                  quietMoment.emotion_type,
+                  quietMoment.emotion_label,
+                );
+              }}
+              reduceMotion={reduceMotion}
+            />
+          )}
+          {/* Visual Expression Canvas overlay */}
+          {visualCanvas && (
+            <VisualExpressionCanvas
+              emotionType={visualCanvas.emotionType}
+              emotionLabel={visualCanvas.emotionLabel}
+              isFirstTime={!hasUsedVisualCanvas()}
+              onClose={() => setVisualCanvas(null)}
               reduceMotion={reduceMotion}
             />
           )}
@@ -883,6 +1069,20 @@ export default function App() {
         )}
       </AnimatePresence>
       <VoiceOnboarding />
+      {/* Notification System v2.0 */}
+      <NotificationPermissionModal />
+      <NotificationCenter
+        open={showNotifCenter}
+        onClose={() => setShowNotifCenter(false)}
+        onNavigateHome={() => {
+          setShowNotifCenter(false);
+          setActiveTab("home");
+        }}
+      />
+      <NotificationSettingsPanel
+        open={showNotifSettings}
+        onClose={() => setShowNotifSettings(false)}
+      />
       <AnimatePresence>
         {showQuickRelease && (
           <QuickReleaseScreen
@@ -905,5 +1105,15 @@ export default function App() {
         )}
       </AnimatePresence>
     </VeilVoiceProvider>
+  );
+}
+
+// ─── App Shell (with Retention Provider) ─────────────────────────────────────
+
+export default function App() {
+  return (
+    <RetentionStateProvider>
+      <AppInner />
+    </RetentionStateProvider>
   );
 }
