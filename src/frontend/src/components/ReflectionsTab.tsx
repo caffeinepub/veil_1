@@ -26,6 +26,7 @@ import {
   saveLocalReflection,
   saveReflectionsSettings,
 } from "../lib/reflectionsEngine";
+import { EmotionalCompass } from "./EmotionalCompass";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
@@ -272,6 +273,7 @@ export function ReflectionsTab() {
 
   // Intelligence
   const [compassState, setCompassState] = useState<CompassState | null>(null);
+  const [showCompassOverlay, setShowCompassOverlay] = useState(false);
   const [connections, setConnections] = useState<ConnectionObservation[]>([]);
   const [themes, setThemes] = useState<Theme[]>([]);
 
@@ -1581,7 +1583,7 @@ export function ReflectionsTab() {
             <button
               data-ocid="reflections.compass.card"
               type="button"
-              onClick={() => setView("compass")}
+              onClick={() => setShowCompassOverlay(true)}
               className="w-full rounded-2xl p-4 text-left flex items-center gap-4"
               style={{
                 background: SP_CARD2,
@@ -1731,6 +1733,26 @@ export function ReflectionsTab() {
             </a>
           </p>
         </div>
+        <AnimatePresence>
+          {showCompassOverlay && (
+            <EmotionalCompass
+              onClose={() => setShowCompassOverlay(false)}
+              onOpenReflection={() => {
+                setShowCompassOverlay(false);
+                if (compassState) {
+                  setActivePrompt({
+                    text: `Your compass has been pointing ${compassState.direction
+                      .replace(/_/g, " ")
+                      .toLowerCase()} lately. What do you think is driving that?`,
+                    type: "COMPASS_REFLECTION",
+                    priority: 1,
+                  });
+                  setView("writing");
+                }
+              }}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
