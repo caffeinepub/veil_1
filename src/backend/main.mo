@@ -254,6 +254,33 @@ actor {
     deliveredAt : ?Int;
   };
 
+
+  // ────── Quick Release System Types ────────────────
+
+  type QuickReleaseSession = {
+    id : Text;
+    userId : Principal;
+    platform : Text; // IOS | ANDROID | WEB
+    accessPoint : Text; // SIRI | HOME_WIDGET | LOCK_WIDGET | GOOGLE_ASSISTANT | QUICK_TILE | DIRECT
+    openedAt : Int;
+    dumpType : ?Text; // VOICE | TEXT | SILENT | null
+    dumpCompleted : Bool;
+    timeToFirstTap : ?Nat; // seconds
+    sessionDuration : ?Nat; // seconds
+    returnedTo : Text; // HOME_SCREEN | LOCK_SCREEN | PREVIOUS_APP | UNKNOWN
+    createdAt : Int;
+  };
+
+  type QuickReleaseConfig = {
+    userId : Principal;
+    platform : Text; // IOS | ANDROID
+    phrase : Text;
+    setupCompleted : Bool;
+    setupDate : ?Int;
+    activationCount : Nat;
+    lastActivatedAt : ?Int;
+  };
+
   // Internal storage using persistent Map
   let apologyEntries = Map.empty<Principal, List.List<ApologyEntry>>();
   let apologyReflections = Map.empty<Principal, List.List<ApologyReceiverReflection>>();
@@ -262,6 +289,8 @@ actor {
   let loveLetterReactions = Map.empty<Principal, List.List<LoveLetterReaction>>();
   let loveLetterSchedules = Map.empty<Principal, List.List<LoveLetterSchedule>>();
   let confessions = Map.empty<Principal, List.List<Confession>>();
+  let quickReleaseSessions = Map.empty<Principal, List.List<QuickReleaseSession>>();
+  let quickReleaseConfigs = Map.empty<Principal, QuickReleaseConfig>();
 
   // Initialize authorization state
   let accessControlState = AccessControl.initState();
@@ -1351,5 +1380,82 @@ actor {
     true;
   };
 
+
+
+  // ────── Quick Release System Functions ──────────────────
+
+  public shared ({ caller }) func logQuickReleaseSession(
+    platform : Text,
+    accessPoint : Text,
+    dumpType : ?Text,
+    dumpCompleted : Bool,
+    sessionDuration : ?Nat,
+    returnedTo : Text,
+  ) : async Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized");
+    };
+    let id = "qrs_" # Time.now().toText();
+    let session : QuickReleaseSession = {
+      id;
+      userId = caller;
+      platform;
+      accessPoint;
+      openedAt = Time.now();
+      dumpType;
+      dumpCompleted;
+      timeToFirstTap = null;
+      sessionDuration;
+      returnedTo;
+      createdAt = Time.now();
+    };
+    let existing = switch (quickReleaseSessions.get(caller)) {
+      case (null) { List.empty<QuickReleaseSession>() };
+      case (?l) { l };
+    };
+    existing.add(session);
+    quickReleaseSessions.add(caller, existing);
+    id;
+  };
+
+  public shared ({ caller }) func saveQuickReleaseConfig(
+    platform : Text,
+    phrase : Text,
+    setupCompleted : Bool,
+  ) : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized");
+    };
+    let existing = quickReleaseConfigs.get(caller);
+    let activationCount = switch (existing) {
+      case (null) { 0 };
+      case (?c) { c.activationCount };
+    };
+    let config : QuickReleaseConfig = {
+      userId = caller;
+      platform;
+      phrase;
+      setupCompleted;
+      setupDate = if (setupCompleted) { ?Time.now() } else { null };
+      activationCount;
+      lastActivatedAt = null;
+    };
+    quickReleaseConfigs.add(caller, config);
+    true;
+  };
+
+  public query ({ caller }) func getQuickReleaseConfig(
+    platform : Text,
+  ) : async ?QuickReleaseConfig {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized");
+    };
+    switch (quickReleaseConfigs.get(caller)) {
+      case (null) { null };
+      case (?c) {
+        if (c.platform == platform) { ?c } else { null };
+      };
+    };
+  };
 
 };

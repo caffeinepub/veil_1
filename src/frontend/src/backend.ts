@@ -264,6 +264,13 @@ export interface backendInterface {
     scheduleApology(apologyId: string, recipientUserId: Principal | null, recipientType: string, recipientContact: string | null, deliveryTime: bigint): Promise<boolean>;
     sendApologyNow(apologyId: string, recipientUserId: Principal | null, recipientType: string, recipientContact: string | null): Promise<boolean>;
     updateApologyContent(apologyId: string, content: string, editLevel: string): Promise<boolean>;
+    createConfession(mode: string, content: string, wordCount: bigint, hadVoiceComponent: boolean, witnessUserId: Principal | null, crisisSignalDetected: boolean, crisisResourcesShown: boolean): Promise<string>;
+    getConfessions(): Promise<Array<Record<string, unknown>>>;
+    saveWitnessResponse(confessionId: string, responseType: string): Promise<boolean>;
+    deleteConfession(confessionId: string): Promise<boolean>;
+    logQuickReleaseSession(platform: string, accessPoint: string, dumpType: Array<string | null>, dumpCompleted: boolean, sessionDuration: Array<number>, returnedTo: string): Promise<string>;
+    saveQuickReleaseConfig(platform: string, phrase: string, setupCompleted: boolean): Promise<void>;
+    getQuickReleaseConfig(platform: string): Promise<Record<string, unknown> | null>;
 }
 import type { ApologyEntry as _ApologyEntry, ApologyReceiverReflection as _ApologyReceiverReflection, ApologySchedule as _ApologySchedule, CompanionDump as _CompanionDump, EmotionEntry as _EmotionEntry, EmotionStreakRecord as _EmotionStreakRecord, Time as _Time, UserProfile as _UserProfile, UserRole as _UserRole, VeilVoiceSettings as _VeilVoiceSettings } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -841,6 +848,27 @@ export class Backend implements backendInterface {
             const result = await this.actor.updateApologyContent(arg0, arg1, arg2);
             return result;
         }
+    }
+    async createConfession(mode: string, content: string, wordCount: bigint, hadVoiceComponent: boolean, witnessUserId: Principal | null, crisisSignalDetected: boolean, crisisResourcesShown: boolean): Promise<string> {
+        return (this.actor as any).createConfession(mode, content, wordCount, hadVoiceComponent, witnessUserId ? [witnessUserId] : [], crisisSignalDetected, crisisResourcesShown).catch(() => "");
+    }
+    async getConfessions(): Promise<Array<Record<string, unknown>>> {
+        return (this.actor as any).getConfessions().catch(() => []);
+    }
+    async saveWitnessResponse(confessionId: string, responseType: string): Promise<boolean> {
+        return (this.actor as any).saveWitnessResponse(confessionId, responseType).catch(() => false);
+    }
+    async deleteConfession(confessionId: string): Promise<boolean> {
+        return (this.actor as any).deleteConfession(confessionId).catch(() => false);
+    }
+    async logQuickReleaseSession(platform: string, accessPoint: string, dumpType: Array<string | null>, dumpCompleted: boolean, sessionDuration: Array<number>, returnedTo: string): Promise<string> {
+        return (this.actor as any).logQuickReleaseSession(platform, accessPoint, dumpType, dumpCompleted, sessionDuration, returnedTo).catch(() => "");
+    }
+    async saveQuickReleaseConfig(platform: string, phrase: string, setupCompleted: boolean): Promise<void> {
+        return (this.actor as any).saveQuickReleaseConfig(platform, phrase, setupCompleted).catch(() => undefined);
+    }
+    async getQuickReleaseConfig(platform: string): Promise<Record<string, unknown> | null> {
+        return (this.actor as any).getQuickReleaseConfig(platform).catch(() => null);
     }
 }
 function from_candid_ApologyEntry_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _ApologyEntry): ApologyEntry {

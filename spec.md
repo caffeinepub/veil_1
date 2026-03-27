@@ -1,27 +1,28 @@
-# Veil — Confess Feature
+# Veil — Quick Release System
 
 ## Current State
-The Write tab has two core features: Express Love (LoveLetterFlow.tsx) and Write an Apology (ApologyCreationFlow.tsx). The app has a voice system (voiceScripts.ts), journal integration, and crisis detection patterns established by prior features. The backend (main.mo) already stores love letters, apologies, and journal entries.
+Veil is a production app with Home, Write, Journal, Reflections, and Profile tabs. The Profile tab has stats, mood history, apology history, and Voice Settings. The Companion Card (CompanionCard.tsx) handles emotional dumps with voice recording and text. No Quick Release system exists yet.
 
 ## Requested Changes (Diff)
 
 ### Add
-- `ConfessFlow.tsx` — Full-screen overlay component implementing the Confess ritual across all three modes: Universe, Private, and Witness
-- Backend data types: `Confession` and `ConfessionWitnessDelivery` with CRUD APIs in `main.mo`
-- Confess card (🕊 icon) in Write tab, above the Express Love card
-- 5 new voice moments (`cf_a` through `cf_e`) in `voiceScripts.ts`
-- Profile section: "Private Confessions" with mode icons and statuses
+- `QuickReleaseScreen.tsx` — full-screen, distraction-free Companion Card dump experience triggered by deep links (Siri/widget/Google Assistant). Starts with Veil's voice, large mic button, no navigation chrome, exhale/done flow that returns user to previous context.
+- `QuickReleaseSettings.tsx` — Settings → Quick Release section with iOS (Siri Shortcut + Home Widget + Lock Widget) and Android (Google Assistant + Quick Settings Tile + Home Widget) setup cards. Each card shows: current phrase/status, animated setup guide with step-by-step instructions, and phrase customization UI.
+- `QuickReleaseOnboarding.tsx` — 3-step onboarding flow shown after first successful dump. Step 1: voice assistant setup (Siri/Google). Step 2: home screen widget guide. Step 3: lock screen widget (iOS) or Quick Settings tile (Android). Each step optional with clear skip.
+- Widget visual previews — interactive display of the 3 widget states (default 🫧 Put it down, checked-in 🌿 You showed up, resting 🌿 Veil has it) in the settings and onboarding UI.
+- URL deep link handling — `?quick=1` query param causes app to open directly to QuickReleaseScreen on load.
+- Backend: `logQuickReleaseSession` and `saveQuickReleaseConfig` methods in main.mo.
 
 ### Modify
-- `App.tsx` — Add ConfessFlow import, state, card, and Profile section
-- `main.mo` — Add Confession and ConfessionWitnessDelivery types with createConfession, getConfessions, saveWitnessResponse, deleteConfession APIs
-- `voiceScripts.ts` — Add confession voice moments
+- `App.tsx` — add Quick Release section to ProfileTab, handle `?quick=1` URL param, trigger QuickReleaseOnboarding state after first dump.
+- `main.mo` — add QuickReleaseSession and QuickReleaseConfig data structures and query methods.
 
 ### Remove
-- Nothing removed
+- Nothing removed.
 
 ## Implementation Plan
-1. Add Confession + ConfessionWitnessDelivery types and APIs to main.mo
-2. Add 5 voice moments to voiceScripts.ts
-3. Create ConfessFlow.tsx with: entry moment screen, mode selection, writing screen (per-mode atmosphere), crisis detection, release moment (particle animation via CSS), voice moments, witness selection, witness view, sender response view, apology bridge, profile section integration
-4. Update App.tsx WriteTab to include the Confess card and ConfessFlow overlay, and Profile tab for Private Confessions
+1. Add backend types and functions to main.mo for QuickReleaseSession logging and config storage.
+2. Create QuickReleaseScreen.tsx — stripped-down dump screen with immediate mic-ready state, Veil voice greeting, exhale, done.
+3. Create QuickReleaseSettings.tsx — tabbed iOS/Android setup guides with widget preview cards, phrase customization, animated how-to steps.
+4. Create QuickReleaseOnboarding.tsx — multi-step modal onboarding wizard.
+5. Update App.tsx — add URL param handling, integrate Settings section into ProfileTab, add onboarding trigger, add Quick Release tab/section.

@@ -192,7 +192,7 @@ export function LetterRevealExperience({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [phase, lines.length, prefersReducedMotion, triggerMoment]); // biome-ignore lint/correctness/useExhaustiveDependencies: phase controls sequencing intentionally
+  }, [phase, lines.length, prefersReducedMotion, triggerMoment]);
 
   function handleFelt() {
     setReaction("FELT");

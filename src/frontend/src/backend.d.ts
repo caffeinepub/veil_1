@@ -185,4 +185,7 @@ export interface backendInterface {
     getConfessions(): Promise<Array<{ id: string; userId: Principal; mode: string; content: string; wordCount: bigint; hadVoiceComponent: boolean; witnessUserId: [] | [Principal]; witnessNotified: boolean; witnessOpened: boolean; witnessResponse: [] | [string]; witnessResponseDelivered: boolean; crisisSignalDetected: boolean; crisisResourcesShown: boolean; apologyBridgeShown: boolean; apologyCreatedAfter: boolean; onThisDaySurfaced: boolean; deletionRequested: boolean; createdAt: bigint; }>>;
     saveWitnessResponse(confessionId: string, responseType: string): Promise<boolean>;
     deleteConfession(confessionId: string): Promise<boolean>;
+    logQuickReleaseSession(platform: string, accessPoint: string, dumpType: Array<string | null>, dumpCompleted: boolean, sessionDuration: Array<number>, returnedTo: string): Promise<string>;
+    saveQuickReleaseConfig(platform: string, phrase: string, setupCompleted: boolean): Promise<void>;
+    getQuickReleaseConfig(platform: string): Promise<{ phrase: string; setupCompleted: boolean; activationCount: bigint } | null>;
 }

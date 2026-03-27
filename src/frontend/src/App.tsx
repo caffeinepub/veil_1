@@ -14,6 +14,7 @@ import {
   User,
   X,
 } from "lucide-react";
+import { AnimatePresence } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { JournalEntry, Reflection, Stats, UserProfile } from "./backend";
@@ -24,6 +25,12 @@ import { ConfessFlow } from "./components/ConfessFlow";
 import { EmotionCheckIn } from "./components/EmotionCheckIn";
 import { EmotionFeed } from "./components/EmotionFeed";
 import { LoveLetterFlow } from "./components/LoveLetterFlow";
+import {
+  QuickReleaseOnboarding,
+  shouldShowQROnboarding,
+} from "./components/QuickReleaseOnboarding";
+import { QuickReleaseScreen } from "./components/QuickReleaseScreen";
+import { QuickReleaseSettings } from "./components/QuickReleaseSettings";
 import { QuietMomentScreen } from "./components/QuietMomentScreen";
 import { ReceiverApologyView } from "./components/ReceiverApologyView";
 import { VeilVoiceOverlay } from "./components/VeilVoiceOverlay";
@@ -1333,6 +1340,11 @@ function ProfileTab() {
           </div>
         </section>
 
+        {/* Quick Release */}
+        <div className="px-5 mb-5">
+          <QuickReleaseSettings />
+        </div>
+
         {/* Veil Voice Settings */}
         <VoiceSettingsPanel />
       </div>
@@ -1404,6 +1416,14 @@ function BottomNav({
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
+  const [showQuickRelease, setShowQuickRelease] = useState(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("quick") === "1";
+    }
+    return false;
+  });
+  const [showQROnboarding, setShowQROnboarding] = useState(false);
   const [quietMoment, setQuietMoment] = useState<{
     emotion_type: string;
     emotion_label: string;
@@ -1522,6 +1542,27 @@ export default function App() {
       {/* Veil Voice System — global audio layer */}
       <VeilVoiceOverlay />
       <VoiceOnboarding />
+      <AnimatePresence>
+        {showQuickRelease && (
+          <QuickReleaseScreen
+            accessPoint="DIRECT"
+            onClose={() => {
+              setShowQuickRelease(false);
+              if (typeof window !== "undefined") {
+                const url = new URL(window.location.href);
+                url.searchParams.delete("quick");
+                window.history.replaceState({}, "", url.toString());
+              }
+              if (shouldShowQROnboarding()) setShowQROnboarding(true);
+            }}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showQROnboarding && (
+          <QuickReleaseOnboarding onClose={() => setShowQROnboarding(false)} />
+        )}
+      </AnimatePresence>
     </VeilVoiceProvider>
   );
 }
