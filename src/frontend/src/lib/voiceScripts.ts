@@ -660,3 +660,146 @@ export function getApologyScript(key: ApologyMomentKey): VoiceScript {
   saveRotationRecord(records);
   return chosen;
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Love Letter Voice Moments (ll_a through ll_f)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type LoveLetterMomentKey =
+  | "ll_a" // Sender closure after sending
+  | "ll_b" // After keeping letter private
+  | "ll_c" // Before receiver reads letter
+  | "ll_d" // After receiver taps ❤️ felt (sender + receiver simultaneously)
+  | "ll_e" // After self-letter is read (future delivery)
+  | "ll_f"; // On This Day anniversary surface
+
+export const LOVE_LETTER_SCRIPTS: Record<LoveLetterMomentKey, VoiceScript[]> = {
+  ll_a: [
+    {
+      id: "ll_a_s1",
+      text: "Your letter is on its way.\nYou wrote something that matters.\nThat took something.",
+      durationHint: 8,
+      audioPath: "/assets/voice/ll_a_s1.mp3",
+    },
+    {
+      id: "ll_a_s2",
+      text: "You chose someone today —\nand you told them.\nNot everyone does that.",
+      durationHint: 7,
+      audioPath: "/assets/voice/ll_a_s2.mp3",
+    },
+    {
+      id: "ll_a_s3",
+      text: "The words exist now.\nThat is a brave thing.",
+      durationHint: 5,
+      audioPath: "/assets/voice/ll_a_s3.mp3",
+    },
+  ],
+  ll_b: [
+    {
+      id: "ll_b_s1",
+      text: "You wrote something beautiful.\nIt's safe here —\nwhenever you're ready.",
+      durationHint: 7,
+      audioPath: "/assets/voice/ll_b_s1.mp3",
+    },
+    {
+      id: "ll_b_s2",
+      text: "Writing it was the act.\nThe rest can wait.\nThis is yours.",
+      durationHint: 6,
+      audioPath: "/assets/voice/ll_b_s2.mp3",
+    },
+  ],
+  ll_c: [
+    {
+      id: "ll_c_s1",
+      text: "Someone wrote this just for you.\nTake your time.",
+      durationHint: 6,
+      audioPath: "/assets/voice/ll_c_s1.mp3",
+    },
+    {
+      id: "ll_c_s2",
+      text: "This was written slowly, with care.\nJust for you.\nThere's no rush.",
+      durationHint: 7,
+      audioPath: "/assets/voice/ll_c_s2.mp3",
+    },
+  ],
+  ll_d: [
+    {
+      id: "ll_d_s1",
+      text: "They felt it.\nSomeone read your words and felt something real.\nThat is rare.\nThat is you.",
+      durationHint: 9,
+      audioPath: "/assets/voice/ll_d_s1.mp3",
+    },
+    {
+      id: "ll_d_s2",
+      text: "They felt it.\nThat's everything.",
+      durationHint: 5,
+      audioPath: "/assets/voice/ll_d_s2.mp3",
+    },
+  ],
+  ll_e: [
+    {
+      id: "ll_e_s1",
+      text: "You wrote this.\nYou showed up for yourself.\nThat matters.",
+      durationHint: 7,
+      audioPath: "/assets/voice/ll_e_s1.mp3",
+    },
+    {
+      id: "ll_e_s2",
+      text: "You wrote to yourself when you needed it.\nYou were right —\nyou needed it today.",
+      durationHint: 8,
+      audioPath: "/assets/voice/ll_e_s2.mp3",
+    },
+    {
+      id: "ll_e_s3",
+      text: "You showed up for yourself.\nThat is the whole thing.",
+      durationHint: 5,
+      audioPath: "/assets/voice/ll_e_s3.mp3",
+    },
+  ],
+  ll_f: [
+    {
+      id: "ll_f_s1",
+      text: "A year ago you wrote something that needed to be said.\nIt found you again today.",
+      durationHint: 8,
+      audioPath: "/assets/voice/ll_f_s1.mp3",
+    },
+    {
+      id: "ll_f_s2",
+      text: "A year ago you wrote something.\nYou are not the same person who wrote it.\nBut you might still need to hear it.",
+      durationHint: 9,
+      audioPath: "/assets/voice/ll_f_s2.mp3",
+    },
+  ],
+};
+
+/**
+ * Get a script for a love letter moment key with weekly rotation.
+ */
+export function getLoveLetterScript(key: LoveLetterMomentKey): VoiceScript {
+  const scripts = LOVE_LETTER_SCRIPTS[key];
+  if (!scripts || scripts.length === 0) {
+    return {
+      id: "fallback",
+      text: "Veil is here.",
+      durationHint: 4,
+      audioPath: "",
+    };
+  }
+  if (scripts.length === 1) return scripts[0];
+
+  const records = getRotationRecord();
+  const rotKey = `ll_${key}`;
+  const rec = records[rotKey];
+  const currentWeek = getCurrentWeek();
+
+  let candidates = scripts;
+  if (rec && rec.lastPlayedWeek === currentWeek) {
+    const filtered = scripts.filter((s) => s.id !== rec.lastScriptId);
+    if (filtered.length > 0) candidates = filtered;
+  }
+
+  const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+  records[rotKey] = { lastScriptId: chosen.id, lastPlayedWeek: currentWeek };
+  saveRotationRecord(records);
+  return chosen;
+}

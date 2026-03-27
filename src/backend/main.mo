@@ -8,12 +8,12 @@ import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
 import Order "mo:core/Order";
 import Map "mo:core/Map";
-import Migration "migration";
+
 
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
-(with migration = Migration.run)
+
 actor {
   // Type definitions
   type JournalEntry = {
@@ -177,10 +177,69 @@ actor {
     deliveredAt : ?Int;
   };
 
+
+  // ────── Love Letter System Types ────────────────
+
+  type LoveLetter = {
+    id : Text;
+    senderUserId : Principal;
+    letterType : Text; // ROMANTIC|FAMILY|FRIENDSHIP|SELF
+    openingLine : Text;
+    bodyText : Text;
+    closingLine : Text;
+    signature : Text;
+    wordCount : Nat;
+    visualStyle : Text; // WARM_CREAM|VINTAGE|MINIMAL_WHITE|SOFT_NIGHT|SPRING
+    isAnonymous : Bool;
+    aiAssisted : Bool;
+    aiVersionUsed : Text; // TENDER|HEARTFELT|POETIC|DIRECT|WARM|SIMPLE|GENTLE|AFFIRMING|HONEST|NONE
+    editLevel : Text; // NONE|MINOR|MAJOR|COMPLETE
+    status : Text; // DRAFT|SCHEDULED|DELIVERED|OPENED|FELT|PRIVATE|EXPIRED
+    visibility : Text; // PRIVATE|SENT
+    deliveryMethod : Text; // IMMEDIATE|SCHEDULED|FUTURE_SELF
+    deliveryTime : ?Int;
+    recipientType : Text; // INNER_CIRCLE|NON_VEIL_SMS|NON_VEIL_EMAIL|SELF
+    recipientUserId : ?Principal;
+    recipientContact : ?Text;
+    nonVeilToken : ?Text;
+    nonVeilTokenExpires : ?Int;
+    crisisSignalDetected : Bool;
+    sharedWarmthTriggered : Bool;
+    journalEntryId : ?Text;
+    onThisDaySurfaced : Bool;
+    createdAt : Int;
+    deliveredAt : ?Int;
+    openedAt : ?Int;
+    feltAt : ?Int;
+  };
+
+  type LoveLetterReaction = {
+    id : Text;
+    letterId : Text;
+    receiverUserId : Principal;
+    reactionType : Text; // FELT|LET_IT_SIT|WROTE_BACK
+    replyLetterId : ?Text;
+    createdAt : Int;
+  };
+
+  type LoveLetterSchedule = {
+    id : Text;
+    letterId : Text;
+    senderUserId : Principal;
+    scheduledDeliveryTime : Int;
+    status : Text; // SCHEDULED|DELIVERED|CANCELLED
+    deliveryType : Text; // STANDARD|BIRTHDAY|ANNIVERSARY|FUTURE_SELF
+    cancelledAt : ?Int;
+    deliveredAt : ?Int;
+  };
+
   // Internal storage using persistent Map
   let apologyEntries = Map.empty<Principal, List.List<ApologyEntry>>();
   let apologyReflections = Map.empty<Principal, List.List<ApologyReceiverReflection>>();
   let apologySchedules = Map.empty<Principal, List.List<ApologySchedule>>();
+  let loveLetters = Map.empty<Principal, List.List<LoveLetter>>();
+  let loveLetterReactions = Map.empty<Principal, List.List<LoveLetterReaction>>();
+  let loveLetterSchedules = Map.empty<Principal, List.List<LoveLetterSchedule>>();
 
   // Initialize authorization state
   let accessControlState = AccessControl.initState();
@@ -1059,5 +1118,139 @@ actor {
     };
     veilVoiceSettings.add(caller, settings);
   };
+
+
+  // ────── Love Letter System Functions ────────────────
+
+  public shared ({ caller }) func createLoveLetter(
+    letterType : Text,
+    openingLine : Text,
+    bodyText : Text,
+    closingLine : Text,
+    signature : Text,
+    wordCount : Nat,
+    visualStyle : Text,
+    isAnonymous : Bool,
+    aiAssisted : Bool,
+    aiVersionUsed : Text,
+    editLevel : Text,
+    deliveryMethod : Text,
+    deliveryTime : ?Int,
+    recipientType : Text,
+    recipientContact : ?Text,
+    nonVeilToken : ?Text,
+    nonVeilTokenExpires : ?Int,
+    crisisSignalDetected : Bool,
+  ) : async Text {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized");
+    };
+    let id = "ll_" # Time.now().toText();
+    let isPrivate = deliveryMethod == "KEEP_PRIVATE" or letterType == "SELF";
+    let newLetter : LoveLetter = {
+      id;
+      senderUserId = caller;
+      letterType;
+      openingLine;
+      bodyText;
+      closingLine;
+      signature;
+      wordCount;
+      visualStyle;
+      isAnonymous;
+      aiAssisted;
+      aiVersionUsed;
+      editLevel;
+      status = if (isPrivate) "PRIVATE" else "DRAFT";
+      visibility = if (isPrivate) "PRIVATE" else "SENT";
+      deliveryMethod;
+      deliveryTime;
+      recipientType;
+      recipientUserId = null;
+      recipientContact;
+      nonVeilToken;
+      nonVeilTokenExpires;
+      crisisSignalDetected;
+      sharedWarmthTriggered = false;
+      journalEntryId = null;
+      onThisDaySurfaced = false;
+      createdAt = Time.now();
+      deliveredAt = null;
+      openedAt = null;
+      feltAt = null;
+    };
+    let existing = switch (loveLetters.get(caller)) {
+      case (null) { List.empty<LoveLetter>() };
+      case (?l) { l };
+    };
+    existing.add(newLetter);
+    loveLetters.add(caller, existing);
+    id;
+  };
+
+  public query ({ caller }) func getLoveLettersBySender() : async [LoveLetter] {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized");
+    };
+    switch (loveLetters.get(caller)) {
+      case (null) { [] };
+      case (?l) { l.toArray() };
+    };
+  };
+
+  public shared ({ caller }) func saveLoveLetterReaction(
+    letterId : Text,
+    reactionType : Text,
+    replyLetterId : ?Text,
+  ) : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized");
+    };
+    let id = "llr_" # Time.now().toText();
+    let reaction : LoveLetterReaction = {
+      id;
+      letterId;
+      receiverUserId = caller;
+      reactionType;
+      replyLetterId;
+      createdAt = Time.now();
+    };
+    let existing = switch (loveLetterReactions.get(caller)) {
+      case (null) { List.empty<LoveLetterReaction>() };
+      case (?l) { l };
+    };
+    existing.add(reaction);
+    loveLetterReactions.add(caller, existing);
+    true;
+  };
+
+  public shared ({ caller }) func scheduleLoveLetter(
+    letterId : Text,
+    scheduledDeliveryTime : Int,
+    deliveryType : Text,
+  ) : async Bool {
+    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized");
+    };
+    let id = "lls_" # Time.now().toText();
+    let schedule : LoveLetterSchedule = {
+      id;
+      letterId;
+      senderUserId = caller;
+      scheduledDeliveryTime;
+      status = "SCHEDULED";
+      deliveryType;
+      cancelledAt = null;
+      deliveredAt = null;
+    };
+    let existing = switch (loveLetterSchedules.get(caller)) {
+      case (null) { List.empty<LoveLetterSchedule>() };
+      case (?l) { l };
+    };
+    existing.add(schedule);
+    loveLetterSchedules.add(caller, existing);
+    true;
+  };
+
 
 };

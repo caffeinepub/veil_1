@@ -22,6 +22,7 @@ import { ApologyCreationFlow } from "./components/ApologyCreationFlow";
 import { CompanionCard } from "./components/CompanionCard";
 import { EmotionCheckIn } from "./components/EmotionCheckIn";
 import { EmotionFeed } from "./components/EmotionFeed";
+import { LoveLetterFlow } from "./components/LoveLetterFlow";
 import { QuietMomentScreen } from "./components/QuietMomentScreen";
 import { ReceiverApologyView } from "./components/ReceiverApologyView";
 import { VeilVoiceOverlay } from "./components/VeilVoiceOverlay";
@@ -417,6 +418,7 @@ function WriteTab({ onSaved }: { onSaved: () => void }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [showApologyFlow, setShowApologyFlow] = useState(false);
+  const [showLoveLetterFlow, setShowLoveLetterFlow] = useState(false);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -456,6 +458,31 @@ function WriteTab({ onSaved }: { onSaved: () => void }) {
         </p>
       </div>
 
+      {/* Express Love Card */}
+      <div className="px-5 mb-3">
+        <button
+          type="button"
+          data-ocid="write.express_love.button"
+          onClick={() => setShowLoveLetterFlow(true)}
+          className="w-full bg-white rounded-3xl p-6 shadow-soft text-left transition-all duration-200 hover:shadow-glow active:scale-[0.98] flex items-start gap-4"
+        >
+          <div className="text-3xl mt-0.5">💌</div>
+          <div>
+            <div className="font-serif text-base font-semibold text-veil-text mb-1">
+              Express Love
+            </div>
+            <p className="text-veil-muted text-sm">
+              Write something that matters.
+            </p>
+          </div>
+        </button>
+      </div>
+      {showLoveLetterFlow && (
+        <LoveLetterFlow
+          onClose={() => setShowLoveLetterFlow(false)}
+          onSaved={() => setShowLoveLetterFlow(false)}
+        />
+      )}
       {/* Apology Card */}
       <div className="px-5 mb-5">
         <button
@@ -1150,6 +1177,95 @@ function ProfileTab() {
             onClose={() => setSelectedApology(null)}
           />
         )}
+
+        <section className="mx-5 mb-5">
+          <h2 className="font-serif text-base font-semibold text-veil-text mb-3 px-1">
+            💌 Letters
+          </h2>
+          <div className="bg-white rounded-3xl p-5 shadow-soft mb-3">
+            <h3 className="text-sm font-semibold text-veil-text mb-3">
+              Letters Sent
+            </h3>
+            <div className="space-y-2">
+              {[
+                {
+                  icon: "💌",
+                  to: "Alex",
+                  date: "Delivered",
+                  status: "They felt it",
+                },
+                {
+                  icon: "🌸",
+                  to: "Mum",
+                  date: "Arriving Jun",
+                  status: "Scheduled",
+                },
+              ].map((item) => (
+                <div
+                  key={item.to ?? item.icon}
+                  className="flex items-center gap-3 py-2 border-b border-veil-purple/10 last:border-0"
+                >
+                  <span className="text-2xl">{item.icon}</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-veil-text">
+                      To {item.to}
+                    </p>
+                    <p className="text-xs text-veil-muted">{item.date}</p>
+                  </div>
+                  <span className="text-xs text-veil-purple font-medium bg-veil-purple/10 px-2.5 py-1 rounded-full">
+                    {item.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="bg-white rounded-3xl p-5 shadow-soft mb-3">
+            <h3 className="text-sm font-semibold text-veil-text mb-2">
+              Letters Received
+            </h3>
+            <div className="flex items-center gap-3 py-2">
+              <span className="text-2xl">🤝</span>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-veil-text">
+                  Someone wrote you something
+                </p>
+                <p className="text-xs text-veil-muted">Received today</p>
+              </div>
+              <span className="text-xs text-veil-purple font-medium bg-veil-purple/10 px-2.5 py-1 rounded-full">
+                Unread
+              </span>
+            </div>
+          </div>
+          <div className="bg-white rounded-3xl p-5 shadow-soft">
+            <h3 className="text-sm font-semibold text-veil-text mb-1">
+              Letters I Never Sent
+            </h3>
+            <p className="text-xs text-veil-muted mb-3">
+              Not failures — a complete act of emotional expression.
+            </p>
+            <div className="flex items-center gap-3 py-2">
+              <span className="text-2xl">🪞</span>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-veil-text">To myself</p>
+                <p className="text-xs text-veil-muted">Written 3 days ago</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="text-xs text-veil-purple bg-veil-purple/10 px-2.5 py-1 rounded-full"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="text-xs text-veil-muted bg-veil-bg px-2.5 py-1 rounded-full"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Veil Voice Settings */}
         <VoiceSettingsPanel />

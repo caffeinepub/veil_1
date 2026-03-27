@@ -8,9 +8,11 @@ import {
 } from "react";
 import {
   type ApologyMomentKey,
+  type LoveLetterMomentKey,
   type MomentId,
   type VoiceScript,
   getApologyScript,
+  getLoveLetterScript,
   getMoment4Script,
   getMoment5Script,
   getNextScript,
@@ -78,7 +80,7 @@ function saveSettings(s: VeilVoiceSettings): void {
 
 export interface ActiveVoiceMoment {
   script: VoiceScript;
-  momentId: MomentId | ApologyMomentKey;
+  momentId: MomentId | ApologyMomentKey | LoveLetterMomentKey;
 }
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -90,7 +92,7 @@ interface VeilVoiceContextValue {
   completeOnboarding: (enabled: boolean) => void;
   // Trigger a voice moment. Accepts numeric ids (1–6) or apology string keys.
   triggerMoment: (
-    momentId: MomentId | ApologyMomentKey,
+    momentId: MomentId | ApologyMomentKey | LoveLetterMomentKey,
     options?: {
       emotionType?: string;
       streakDays?: number;
@@ -176,7 +178,7 @@ export function VeilVoiceProvider({ children }: { children: React.ReactNode }) {
 
   const triggerMoment = useCallback(
     (
-      momentId: MomentId | ApologyMomentKey,
+      momentId: MomentId | ApologyMomentKey | LoveLetterMomentKey,
       options?: { emotionType?: string; streakDays?: number },
     ) => {
       if (!settings.onboarding_completed) return;
@@ -211,8 +213,10 @@ export function VeilVoiceProvider({ children }: { children: React.ReactNode }) {
         } else {
           script = getNextScript(momentId as Exclude<MomentId, 4 | 5>);
         }
+      } else if (typeof momentId === "string" && momentId.startsWith("ll_")) {
+        script = getLoveLetterScript(momentId as LoveLetterMomentKey);
       } else {
-        script = getApologyScript(momentId);
+        script = getApologyScript(momentId as ApologyMomentKey);
       }
 
       setActiveMoment({ script, momentId });
