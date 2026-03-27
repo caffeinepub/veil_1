@@ -15,13 +15,16 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { JournalEntry, Reflection, Stats, UserProfile } from "./backend";
 import type { ApologyEntry, ApologySchedule } from "./backend";
 import { ApologyCreationFlow } from "./components/ApologyCreationFlow";
+import { CelebrationFlow, HardDayDelivery } from "./components/CelebrationFlow";
 import { CompanionCard } from "./components/CompanionCard";
 import { ConfessFlow } from "./components/ConfessFlow";
+import { EIConsentModal } from "./components/EIConsentModal";
+import { EISettingsPanel, getEISettings } from "./components/EISettingsPanel";
 import { EmotionCheckIn } from "./components/EmotionCheckIn";
 import { EmotionFeed } from "./components/EmotionFeed";
 import { LoveLetterFlow } from "./components/LoveLetterFlow";
@@ -33,11 +36,19 @@ import { QuickReleaseScreen } from "./components/QuickReleaseScreen";
 import { QuickReleaseSettings } from "./components/QuickReleaseSettings";
 import { QuietMomentScreen } from "./components/QuietMomentScreen";
 import { ReceiverApologyView } from "./components/ReceiverApologyView";
+import { TransformationArcFlow } from "./components/TransformationArcFlow";
 import { VeilVoiceOverlay } from "./components/VeilVoiceOverlay";
 import { VoiceOnboarding } from "./components/VoiceOnboarding";
 import { VoiceSettingsPanel } from "./components/VoiceSettingsPanel";
 import { VeilVoiceProvider } from "./contexts/VeilVoiceContext";
 import { useActor } from "./hooks/useActor";
+import { detectEmotion } from "./lib/emotionDetection";
+import type { EmotionType } from "./lib/emotionDetection";
+import { classifyPositiveEmotion } from "./lib/positiveEmotionDetection";
+import type {
+  MilestoneLevel,
+  PositiveEmotionType,
+} from "./lib/positiveEmotionDetection";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -235,6 +246,7 @@ function HomeTab({
   profile,
   entries,
   onPostSuccess,
+  onDumpComplete,
 }: {
   onNavigate: (tab: Tab) => void;
   profile: UserProfile | null | undefined;
@@ -247,6 +259,10 @@ function HomeTab({
     source: "emotion_checkin";
     crisis_signal_detected: boolean;
   }) => void;
+  onDumpComplete?: (
+    textContent: string | null,
+    dumpType: "voice" | "text",
+  ) => void;
 }) {
   const quote = todayQuote();
   const name = profile?.displayName;
@@ -276,7 +292,7 @@ function HomeTab({
       </div>
 
       {/* Companion Card — emotional release feature */}
-      <CompanionCard />
+      <CompanionCard onDumpComplete={onDumpComplete} />
 
       {/* Emotion Check-In — Component 2 */}
       <EmotionCheckIn onPostSuccess={onPostSuccess} />
@@ -709,7 +725,183 @@ function JournalTab() {
             onDelete={(id) => deleteMutation.mutate(id)}
           />
         ))}
+        <JoyCapturedSection />
       </div>
+    </div>
+  );
+}
+
+// ─── Joy Captured Section ─────────────────────────────────────────────────────────
+
+function JoyCapturedSection() {
+  const [joyItems, setJoyItems] = useState<
+    Array<{
+      key: string;
+      type: string;
+      content: string;
+      emotionType: string;
+      milestoneLevel: string;
+      deliveryType: string;
+      createdAt: number;
+      delivered: boolean;
+    }>
+  >([]);
+  const [milestones, setMilestones] = useState<
+    Array<{
+      key: string;
+      emotionType: string;
+      name: string;
+      date: string;
+    }>
+  >([]);
+
+  useEffect(() => {
+    const items: typeof joyItems = [];
+    const ms: typeof milestones = [];
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k) continue;
+        if (k.startsWith("veil-captured-joy-")) {
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            try {
+              items.push({ key: k, ...JSON.parse(raw) });
+            } catch {
+              /**/
+            }
+          }
+        }
+        if (k.startsWith("veil-milestone-")) {
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            try {
+              ms.push({ key: k, ...JSON.parse(raw) });
+            } catch {
+              /**/
+            }
+          }
+        }
+      }
+    } catch {
+      /**/
+    }
+    items.sort((a, b) => b.createdAt - a.createdAt);
+    setJoyItems(items);
+    setMilestones(ms);
+  }, []);
+
+  if (joyItems.length === 0 && milestones.length === 0) return null;
+
+  function deliveryLabel(dt: string) {
+    const map: Record<string, string> = {
+      "3_MONTHS": "In 3 months",
+      "6_MONTHS": "In 6 months",
+      "1_YEAR": "In 1 year",
+      HARD_DAY: "On a hard day",
+    };
+    return map[dt] ?? "Scheduled";
+  }
+
+  return (
+    <div className="mt-4">
+      {joyItems.length > 0 && (
+        <section data-ocid="journal.joy_captured.section" className="mb-4">
+          <h2 className="font-serif text-base font-semibold text-veil-text mb-3 px-1">
+            Joy I Captured
+          </h2>
+          <div className="space-y-3">
+            {joyItems.map((item, idx) => (
+              <article
+                key={item.key}
+                data-ocid={`journal.joy_captured.item.${idx + 1}`}
+                className="rounded-3xl p-5 shadow-soft"
+                style={{
+                  backgroundColor: "#FFF8E7",
+                  border: "1px solid rgba(232,192,96,0.25)",
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span
+                    className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                    style={{
+                      backgroundColor: "rgba(232,192,96,0.35)",
+                      color: "#5C3D00",
+                    }}
+                  >
+                    {item.type === "voice" ? "Voice" : "Letter"} ·{" "}
+                    {String(item.emotionType ?? "")
+                      .replace(/_/g, " ")
+                      .toLowerCase()}
+                  </span>
+                  <span className="text-xs" style={{ color: "#8B7040" }}>
+                    {deliveryLabel(item.deliveryType)}
+                  </span>
+                </div>
+                <p
+                  className="text-sm leading-relaxed line-clamp-3"
+                  style={{ color: "#5C3D00" }}
+                >
+                  {item.content || "Voice note captured."}
+                </p>
+                <p
+                  className="text-xs mt-2 opacity-50"
+                  style={{ color: "#5C3D00" }}
+                >
+                  {new Date(item.createdAt).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+      {milestones.length > 0 && (
+        <section data-ocid="journal.milestones.section">
+          <h2 className="font-serif text-base font-semibold text-veil-text mb-3 px-1">
+            Life Milestones
+          </h2>
+          <div className="space-y-3">
+            {milestones.map((m, idx) => (
+              <div
+                key={m.key}
+                data-ocid={`journal.milestone.item.${idx + 1}`}
+                className="rounded-3xl p-5 shadow-soft"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #E8C060 0%, #FFF8E7 100%)",
+                  border: "1px solid rgba(232,192,96,0.4)",
+                }}
+              >
+                <p
+                  className="font-serif text-base font-semibold"
+                  style={{ color: "#5C3D00" }}
+                >
+                  {String(m.emotionType ?? "").replace(/_/g, " ")}
+                </p>
+                {m.name && (
+                  <p className="text-sm mt-1" style={{ color: "#5C3D00" }}>
+                    {m.name}
+                  </p>
+                )}
+                <p
+                  className="text-xs mt-1 opacity-50"
+                  style={{ color: "#5C3D00" }}
+                >
+                  {new Date(m.date).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
@@ -839,8 +1031,110 @@ function ReflectionsTab() {
             </section>
           );
         })}
+        <JoyThisMonthCard />
       </div>
     </div>
+  );
+}
+
+// ─── Joy This Month Card ─────────────────────────────────────────────────────
+
+function JoyThisMonthCard() {
+  const [joyCount, setJoyCount] = useState(0);
+  const [negCount, setNegCount] = useState(0);
+  const [topEmotions, setTopEmotions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    let joy = 0;
+    const emotions: string[] = [];
+    let neg = 0;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k) continue;
+        if (k.startsWith("veil-captured-joy-")) {
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            try {
+              const p = JSON.parse(raw);
+              if (p.createdAt >= monthStart) {
+                joy++;
+                if (p.emotionType && !emotions.includes(p.emotionType))
+                  emotions.push(p.emotionType);
+              }
+            } catch {
+              /**/
+            }
+          }
+        }
+        if (k.startsWith("veil-ei-session-") || k.startsWith("veil-arc-")) {
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            try {
+              const p = JSON.parse(raw);
+              if (p.createdAt >= monthStart) neg++;
+            } catch {
+              /**/
+            }
+          }
+        }
+      }
+    } catch {
+      /**/
+    }
+    setJoyCount(joy);
+    setNegCount(neg);
+    setTopEmotions(emotions.slice(0, 3));
+  }, []);
+
+  if (joyCount === 0) return null;
+
+  return (
+    <section
+      data-ocid="reflections.joy_month.section"
+      className="rounded-3xl p-5 mt-2 shadow-soft"
+      style={{
+        backgroundColor: "#FFF8E7",
+        border: "1px solid rgba(232,192,96,0.3)",
+      }}
+    >
+      <h3
+        className="font-serif text-sm font-semibold mb-1"
+        style={{ color: "#5C3D00" }}
+      >
+        Your joy this month
+      </h3>
+      <div className="flex flex-wrap gap-2 mb-3 mt-2">
+        {topEmotions.map((e) => (
+          <span
+            key={e}
+            className="text-xs px-2.5 py-1 rounded-full font-medium"
+            style={{
+              backgroundColor: "rgba(232,192,96,0.35)",
+              color: "#5C3D00",
+            }}
+          >
+            {e.replace(/_/g, " ").toLowerCase()}
+          </span>
+        ))}
+      </div>
+      <p className="text-sm leading-relaxed" style={{ color: "#5C3D00" }}>
+        You captured {joyCount} moment{joyCount !== 1 ? "s" : ""} of joy this
+        month. They are stored for whenever you need them. That is future-you
+        taking care of present-you. That takes wisdom.
+      </p>
+      {joyCount > 0 && negCount > 0 && (
+        <p
+          className="text-sm mt-3 leading-relaxed opacity-70"
+          style={{ color: "#5C3D00" }}
+        >
+          This month you brought both difficult things and beautiful things to
+          Veil. That is a full life. Veil was here for all of it.
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -1340,6 +1634,11 @@ function ProfileTab() {
           </div>
         </section>
 
+        {/* Emotional Intelligence Settings */}
+        <div className="px-5 mb-5">
+          <EISettingsPanel />
+        </div>
+
         {/* Quick Release */}
         <div className="px-5 mb-5">
           <QuickReleaseSettings />
@@ -1424,6 +1723,21 @@ export default function App() {
     return false;
   });
   const [showQROnboarding, setShowQROnboarding] = useState(false);
+  const [eiConsentPending, setEiConsentPending] = useState(false);
+  const [eiArcData, setEiArcData] = useState<{
+    emotionType: EmotionType;
+    intensity: number;
+  } | null>(null);
+  const [celebrationData, setCelebrationData] = useState<{
+    emotionType: PositiveEmotionType;
+    milestoneLevel: MilestoneLevel;
+    intensity: number;
+  } | null>(null);
+  const [showHardDayDelivery, setShowHardDayDelivery] = useState(false);
+  const pendingDumpRef = useRef<{
+    textContent: string | null;
+    dumpType: "voice" | "text";
+  } | null>(null);
   const [quietMoment, setQuietMoment] = useState<{
     emotion_type: string;
     emotion_label: string;
@@ -1484,6 +1798,72 @@ export default function App() {
     enabled: !!actor && !isFetching,
   });
 
+  function handleDumpComplete(
+    textContent: string | null,
+    dumpType: "voice" | "text",
+  ) {
+    const consent =
+      typeof window !== "undefined"
+        ? localStorage.getItem("veil-ei-consent")
+        : null;
+    if (!consent) {
+      pendingDumpRef.current = { textContent, dumpType };
+      setEiConsentPending(true);
+      return;
+    }
+    if (consent !== "yes") return;
+    const result = detectEmotion(textContent);
+    if (result.emotion_category === "NEGATIVE" && result.confidence >= 0.65) {
+      setEiArcData({
+        emotionType: result.emotion_type as EmotionType,
+        intensity: result.intensity,
+      });
+      return;
+    }
+    if (result.emotion_category === "POSITIVE" && result.confidence >= 0.65) {
+      const positiveResult = classifyPositiveEmotion(result, textContent);
+      setCelebrationData({
+        emotionType: positiveResult.emotion_type,
+        milestoneLevel: positiveResult.milestone_level,
+        intensity: positiveResult.intensity,
+      });
+    }
+  }
+
+  function handleEIAccept() {
+    localStorage.setItem("veil-ei-consent", "yes");
+    setEiConsentPending(false);
+    const pending = pendingDumpRef.current;
+    if (pending) {
+      pendingDumpRef.current = null;
+      const result = detectEmotion(pending.textContent);
+      if (result.emotion_category === "NEGATIVE" && result.confidence >= 0.65) {
+        setEiArcData({
+          emotionType: result.emotion_type as EmotionType,
+          intensity: result.intensity,
+        });
+        return;
+      }
+      if (result.emotion_category === "POSITIVE" && result.confidence >= 0.65) {
+        const positiveResult = classifyPositiveEmotion(
+          result,
+          pending.textContent,
+        );
+        setCelebrationData({
+          emotionType: positiveResult.emotion_type,
+          milestoneLevel: positiveResult.milestone_level,
+          intensity: positiveResult.intensity,
+        });
+      }
+    }
+  }
+
+  function handleEIDecline() {
+    localStorage.setItem("veil-ei-consent", "no");
+    setEiConsentPending(false);
+    pendingDumpRef.current = null;
+  }
+
   return (
     <VeilVoiceProvider>
       <div
@@ -1500,6 +1880,7 @@ export default function App() {
                 profile={profile}
                 entries={entries}
                 onPostSuccess={handlePostSuccess}
+                onDumpComplete={handleDumpComplete}
               />
             )}
             {activeTab === "write" && (
@@ -1541,6 +1922,44 @@ export default function App() {
       </div>
       {/* Veil Voice System — global audio layer */}
       <VeilVoiceOverlay />
+      {/* EI Consent Modal */}
+      <EIConsentModal
+        isOpen={eiConsentPending}
+        onAccept={handleEIAccept}
+        onDecline={handleEIDecline}
+      />
+      {/* EI Transformation Arc */}
+      <AnimatePresence>
+        {eiArcData && (
+          <TransformationArcFlow
+            emotionType={eiArcData.emotionType}
+            intensity={eiArcData.intensity}
+            onComplete={() => setEiArcData(null)}
+            settings={getEISettings()}
+          />
+        )}
+      </AnimatePresence>
+      {/* Positive Emotion Celebration Flow */}
+      <AnimatePresence>
+        {celebrationData && (
+          <CelebrationFlow
+            emotionType={celebrationData.emotionType}
+            milestoneLevel={celebrationData.milestoneLevel}
+            intensity={celebrationData.intensity}
+            onComplete={() => setCelebrationData(null)}
+            onNavigateToWrite={() => {
+              setCelebrationData(null);
+              setActiveTab("write");
+            }}
+          />
+        )}
+      </AnimatePresence>
+      {/* Hard Day Delivery */}
+      <AnimatePresence>
+        {showHardDayDelivery && (
+          <HardDayDelivery onContinue={() => setShowHardDayDelivery(false)} />
+        )}
+      </AnimatePresence>
       <VoiceOnboarding />
       <AnimatePresence>
         {showQuickRelease && (

@@ -163,7 +163,14 @@ function drawWaveframe(
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export function CompanionCard() {
+export function CompanionCard({
+  onDumpComplete,
+}: {
+  onDumpComplete?: (
+    textContent: string | null,
+    dumpType: "voice" | "text",
+  ) => void;
+} = {}) {
   const { actor, isFetching } = useActor();
   const qc = useQueryClient();
   const { triggerMoment } = useVeilVoice();
@@ -399,6 +406,8 @@ export function CompanionCard() {
     };
     saveMutation.mutate(payload);
     setCardState("RELEASED");
+    // EI Engine callback
+    onDumpComplete?.(textContent, contentType === "TEXT" ? "text" : "voice");
     // Voice System: Moment 2 (text dump) or Moment 3 (silent dump)
     if (contentType === "TEXT") {
       setTimeout(() => triggerMoment(2), 600);
