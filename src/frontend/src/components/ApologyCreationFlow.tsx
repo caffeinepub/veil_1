@@ -340,7 +340,7 @@ export function ApologyCreationFlow({
 
   function renderPathChoice() {
     return (
-      <div className="flex flex-col items-center justify-center min-h-full px-6 py-12">
+      <div className="flex flex-col items-center justify-center min-h-full px-6 py-12 bg-[#F5F2F8]">
         <div className="text-center mb-10">
           <div className="text-4xl mb-4">🕊</div>
           <h1 className="font-serif text-2xl font-semibold text-veil-text mb-3">
@@ -357,7 +357,7 @@ export function ApologyCreationFlow({
               setIntent("express");
               setStep("WRITE");
             }}
-            className="w-full bg-white rounded-3xl p-6 shadow-soft text-left transition-all duration-200 hover:shadow-glow active:scale-[0.98]"
+            className="w-full bg-[#EDE8F0] rounded-3xl p-6 shadow-soft text-left transition-all duration-200 hover:shadow-glow active:scale-[0.98] border border-[#C3B8D8]/40"
           >
             <div className="text-2xl mb-3">🕊</div>
             <div className="font-serif text-base font-semibold text-veil-text mb-1">
@@ -376,7 +376,7 @@ export function ApologyCreationFlow({
               setIntent("heal");
               setStep("WRITE");
             }}
-            className="w-full bg-white rounded-3xl p-6 shadow-soft text-left transition-all duration-200 hover:shadow-glow active:scale-[0.98]"
+            className="w-full bg-[#E8EBF0] rounded-3xl p-6 shadow-soft text-left transition-all duration-200 hover:shadow-glow active:scale-[0.98] border border-[#B8C4D4]/40"
           >
             <div className="text-2xl mb-3">📖</div>
             <div className="font-serif text-base font-semibold text-veil-text mb-1">
@@ -393,7 +393,7 @@ export function ApologyCreationFlow({
 
   function renderWrite() {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full bg-[#F5F2F8]">
         {/* Header */}
         <div className="flex items-center gap-3 px-5 pt-6 pb-4">
           <BackButton to="PATH_CHOICE" />
