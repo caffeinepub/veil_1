@@ -567,14 +567,17 @@ function WriteTab({
           data-ocid="write.apology.button"
           type="button"
           onClick={() => setShowApologyFlow(true)}
-          className="w-full bg-[#EDE8F0] rounded-3xl p-6 shadow-soft text-left transition-all duration-200 hover:shadow-glow active:scale-[0.98] flex items-start gap-4 border-l-4 border-[#C3B8D8]"
+          className="w-full rounded-3xl p-6 shadow-soft text-left transition-all duration-200 hover:shadow-glow active:scale-[0.98] flex items-start gap-4"
+          style={{
+            background: "linear-gradient(135deg, #2a1f2e 0%, #1e1a28 100%)",
+          }}
         >
           <div className="text-3xl mt-0.5">🕊</div>
           <div>
-            <div className="font-serif text-base font-semibold text-veil-text mb-1">
+            <div className="font-serif text-base font-semibold text-white/90 mb-1">
               Write an Apology
             </div>
-            <p className="text-veil-muted text-sm">
+            <p className="text-white/50 text-sm">
               Say what you've been carrying.
             </p>
           </div>
