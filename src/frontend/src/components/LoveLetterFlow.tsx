@@ -372,6 +372,13 @@ export function LoveLetterFlow({
     [letter],
   );
 
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
   useEffect(
     () => () => {
       if (crisisTimerRef.current) clearTimeout(crisisTimerRef.current);
@@ -1250,7 +1257,7 @@ export function LoveLetterFlow({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-veil-bg"
+      className="fixed inset-0 z-[100] flex flex-col bg-veil-bg"
       style={{ fontFamily: "inherit" }}
     >
       {/* Nav bar */}

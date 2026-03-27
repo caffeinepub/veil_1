@@ -539,14 +539,17 @@ function WriteTab({
           type="button"
           data-ocid="write.express_love.button"
           onClick={() => setShowLoveLetterFlow(true)}
-          className="w-full bg-white rounded-3xl p-6 shadow-soft text-left transition-all duration-200 hover:shadow-glow active:scale-[0.98] flex items-start gap-4"
+          className="w-full rounded-3xl p-6 shadow-soft text-left transition-all duration-200 hover:shadow-glow active:scale-[0.98] flex items-start gap-4"
+          style={{
+            background: "linear-gradient(135deg, #3d1a2e 0%, #2e1a2a 100%)",
+          }}
         >
           <div className="text-3xl mt-0.5">💌</div>
           <div>
-            <div className="font-serif text-base font-semibold text-veil-text mb-1">
+            <div className="font-serif text-base font-semibold text-white/90 mb-1">
               Express Love
             </div>
-            <p className="text-veil-muted text-sm">
+            <p className="text-white/50 text-sm">
               Write something that matters.
             </p>
           </div>
