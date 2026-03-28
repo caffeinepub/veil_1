@@ -1,6 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, BookHeart, Loader2 } from "lucide-react";
+import { Bell, Loader2 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
@@ -111,25 +111,6 @@ type Tab = "home" | "write" | "journal" | "reflections" | "profile";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getMoodInfo(key: string) {
-  return (
-    MOODS.find((m) => m.key === key) ?? {
-      emoji: "💭",
-      label: key,
-      color: "#C9B8E8",
-    }
-  );
-}
-
-function formatDate(ts: bigint): string {
-  const d = new Date(Number(ts) / 1_000_000);
-  return d.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
 function todayQuote(): { text: string; author: string } {
   const day = new Date().getDay();
   return QUOTES[day % QUOTES.length];
@@ -170,7 +151,6 @@ function MoodChip({
 function HomeTab({
   onNavigate,
   profile,
-  entries,
   onPostSuccess,
   onDumpComplete,
   retentionState,
@@ -183,7 +163,6 @@ function HomeTab({
   onNavigate: (tab: Tab) => void;
   onOpenNotifications?: () => void;
   profile: UserProfile | null | undefined;
-  entries: JournalEntry[] | undefined;
   onPostSuccess?: (data: {
     emotion_type: string;
     emotion_label: string;
@@ -204,10 +183,6 @@ function HomeTab({
 }) {
   const quote = todayQuote();
   const name = profile?.displayName;
-  const recent = (entries ?? [])
-    .slice()
-    .sort((a, b) => Number(b.timestamp - a.timestamp))
-    .slice(0, 3);
 
   return (
     <div className="animate-fade-in pb-28">
@@ -283,32 +258,6 @@ function HomeTab({
       <EmotionFeed onCheckIn={() => onNavigate("write")} />
 
       <div className="px-5 space-y-5">
-        {/* Mood check-in */}
-        <section
-          data-ocid="home.section"
-          className="bg-white rounded-3xl p-5 shadow-soft"
-        >
-          <h2 className="font-serif text-base font-semibold text-veil-text mb-4">
-            Quick Mood Check-in
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {MOODS.map((mood) => (
-              <button
-                key={mood.key}
-                type="button"
-                onClick={() => onNavigate("write")}
-                className="flex flex-col items-center gap-1 p-3 rounded-2xl transition-all duration-200 hover:scale-105 active:scale-95"
-                style={{ backgroundColor: `${mood.color}40` }}
-              >
-                <span className="text-xl">{mood.emoji}</span>
-                <span className="text-xs font-medium text-veil-muted">
-                  {mood.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-
         {/* Quote */}
         <section
           className="rounded-3xl p-5"
@@ -324,85 +273,6 @@ function HomeTab({
           </blockquote>
           <p className="text-xs text-veil-muted mt-2">&mdash; {quote.author}</p>
         </section>
-
-        {/* Recent entries */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-serif text-base font-semibold text-veil-text">
-              Recent Entries
-            </h2>
-            <button
-              type="button"
-              onClick={() => onNavigate("journal")}
-              className="text-xs text-veil-purple font-medium hover:underline"
-            >
-              See all
-            </button>
-          </div>
-          {recent.length === 0 ? (
-            <div
-              data-ocid="home.empty_state"
-              className="bg-white rounded-3xl p-6 shadow-soft text-center"
-            >
-              <BookHeart
-                className="mx-auto mb-2 text-veil-lavender"
-                size={32}
-              />
-              <p className="text-sm text-veil-muted">
-                No entries yet. Start your first one.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {recent.map((entry, i) => {
-                const mood = getMoodInfo(entry.mood);
-                return (
-                  <div
-                    key={entry.id}
-                    data-ocid={`home.item.${i + 1}`}
-                    className="bg-white rounded-2xl p-4 shadow-soft"
-                  >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span
-                        className="text-xs px-2 py-0.5 rounded-full font-medium"
-                        style={{
-                          backgroundColor: `${mood.color}50`,
-                          color: "#2D2540",
-                        }}
-                      >
-                        {mood.emoji} {mood.label}
-                      </span>
-                      <span className="text-xs text-veil-muted">
-                        {formatDate(entry.timestamp)}
-                      </span>
-                    </div>
-                    {entry.title && (
-                      <p className="font-serif text-sm font-semibold text-veil-text line-clamp-1">
-                        {entry.title}
-                      </p>
-                    )}
-                    <p className="text-xs text-veil-muted line-clamp-1 mt-0.5">
-                      {entry.body}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* CTA */}
-        <button
-          data-ocid="home.primary_button"
-          type="button"
-          onClick={() => onNavigate("write")}
-          className="w-full py-4 rounded-3xl font-semibold text-white text-sm transition-all duration-200 hover:opacity-90 active:scale-95 shadow-soft"
-          style={{
-            background: "linear-gradient(135deg, #6B5B8E 0%, #9B7FC0 100%)",
-          }}
-        >
-          ✍️ Start Writing
-        </button>
       </div>
     </div>
   );
@@ -1101,7 +971,7 @@ function AppInner() {
     enabled: !!actor && !isFetching,
   });
 
-  const { data: entries } = useQuery<JournalEntry[]>({
+  useQuery<JournalEntry[]>({
     queryKey: ["entries"],
     queryFn: async () => {
       if (!actor) return [];
@@ -1190,7 +1060,6 @@ function AppInner() {
               <HomeTab
                 onNavigate={setActiveTab}
                 profile={profile}
-                entries={entries}
                 onPostSuccess={handlePostSuccess}
                 onDumpComplete={handleDumpComplete}
                 retentionState={retentionState}
